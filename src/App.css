@@ -8,3 +8,6 @@ button { padding: 10px; border: 0; border-radius: 10px; background: #ff7eb3; col
 .msg { background: #f1f1f1; padding: 8px 12px; border-radius: 12px; max-width: 75%; }
 .msg.mine { background: #ffd1e3; align-self: flex-end; }
 .error { color: red; font-size: 12px; }
+
+.media { max-width: 100%; border-radius: 10px; margin-top: 6px; }
+.msg a { color: #d6336c; word-break: break-all; }
