@@ -11,3 +11,12 @@ button { padding: 10px; border: 0; border-radius: 10px; background: #ff7eb3; col
 
 .media { max-width: 100%; border-radius: 10px; margin-top: 6px; }
 .msg a { color: #d6336c; word-break: break-all; }
+
+.tabs { display: flex; gap: 8px; }
+.tab { flex: 1; background: #f1f1f1; color: #555; }
+.tab.active { background: #ff7eb3; color: white; }
+.board { display: flex; flex-direction: column; gap: 10px; }
+.canvas { width: 100%; aspect-ratio: 1; border: 2px solid #ffd1e3; border-radius: 12px; touch-action: none; cursor: crosshair; background: white; }
+.tools { display: flex; gap: 8px; align-items: center; }
+.tools input[type="color"] { padding: 0; width: 44px; height: 38px; }
+.tools select { padding: 8px; border-radius: 10px; }

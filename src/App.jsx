@@ -9,6 +9,7 @@ import {
 import {
   collection, addDoc, query, orderBy, onSnapshot, serverTimestamp,
 } from "firebase/firestore";
+import Whiteboard from "./Whiteboard";
 import "./App.css";
 
 const CLOUD_NAME = "n7saeady";
@@ -22,6 +23,7 @@ export default function App() {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [tab, setTab] = useState("chat");
   const fileRef = useRef(null);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
@@ -91,36 +93,48 @@ export default function App() {
   return (
     <div className="card">
       <div className="top">
-        <h2>Chat room</h2>
+        <h2>Cute Chat</h2>
         <button onClick={() => signOut(auth)}>Log out</button>
       </div>
-      <div className="messages">
-        {messages.map((m) => (
-          <div key={m.id} className={m.sender === user.email ? "msg mine" : "msg"}>
-            <small>{m.sender}</small>
-            {m.text && <div>{m.text}</div>}
-            {m.fileUrl && m.fileType?.startsWith("image/") && (
-              <img src={m.fileUrl} alt={m.fileName} className="media" />
-            )}
-            {m.fileUrl && m.fileType?.startsWith("video/") && (
-              <video src={m.fileUrl} controls className="media" />
-            )}
-            {m.fileUrl && !m.fileType?.startsWith("image/") && !m.fileType?.startsWith("video/") && (
-              <a href={m.fileUrl} target="_blank" rel="noreferrer">📄 {m.fileName}</a>
-            )}
+      <div className="tabs">
+        <button className={tab === "chat" ? "tab active" : "tab"} onClick={() => setTab("chat")}>💬 Chat</button>
+        <button className={tab === "board" ? "tab active" : "tab"} onClick={() => setTab("board")}>🎨 Whiteboard</button>
+      </div>
+
+      {tab === "board" ? (
+        <Whiteboard />
+      ) : (
+        <>
+          <div className="messages">
+            {messages.map((m) => (
+              <div key={m.id} className={m.sender === user.email ? "msg mine" : "msg"}>
+                <small>{m.sender}</small>
+                {m.text && <div>{m.text}</div>}
+                {m.fileUrl && m.fileType?.startsWith("image/") && (
+                  <img src={m.fileUrl} alt={m.fileName} className="media" />
+                )}
+                {m.fileUrl && m.fileType?.startsWith("video/") && (
+                  <video src={m.fileUrl} controls className="media" />
+                )}
+                {m.fileUrl && !m.fileType?.startsWith("image/") && !m.fileType?.startsWith("video/") && (
+                  <a href={m.fileUrl} target="_blank" rel="noreferrer">📄 {m.fileName}</a>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="send">
-        <input type="file" ref={fileRef} onChange={sendFile} style={{ display: "none" }} />
-        <button onClick={() => fileRef.current.click()} disabled={uploading}>
-          {uploading ? "⏳" : "📎"}
-        </button>
-        <input placeholder="Type a message" value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()} />
-        <button onClick={send}>Send</button>
-      </div>
+          <div className="send">
+            <input type="file" ref={fileRef} onChange={sendFile} style={{ display: "none" }} />
+            <button onClick={() => fileRef.current.click()} disabled={uploading}>
+              {uploading ? "⏳" : "📎"}
+            </button>
+            <input placeholder="Type a message" value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()} />
+            <button onClick={send}>Send</button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
