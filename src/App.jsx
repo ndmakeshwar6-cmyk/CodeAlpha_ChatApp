@@ -1,140 +1,181 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut,
-} from "firebase/auth";
-import {
-  collection, addDoc, query, orderBy, onSnapshot, serverTimestamp,
+  collection, onSnapshot, doc, setDoc, deleteDoc, query, where,
 } from "firebase/firestore";
 import Whiteboard from "./Whiteboard";
+import VideoCall from "./VideoCall";
+import ProfileSetup from "./ProfileSetup";
+import Avatar from "./Avatar";
+import Home from "./Home";
+import ChatView from "./ChatView";
+import Contacts from "./Contacts";
+import ProfileView from "./ProfileView";
+import AuthScreen from "./AuthScreen";
+import Receipts from "./Receipts";
 import "./App.css";
 
-const CLOUD_NAME = "n7saeady";
-const UPLOAD_PRESET = "chatapp_upload";
+const chatIdFor = (a, b) => [a, b].sort().join("_");
 
 export default function App() {
+  const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [tab, setTab] = useState("chat");
-  const fileRef = useRef(null);
+  const [profile, setProfile] = useState(undefined);
+  const [tab, setTab] = useState("chats");
+  const [openChat, setOpenChat] = useState(null);
+  const [viewUid, setViewUid] = useState(null);
+  const [nicks, setNicks] = useState({});
+  const [reqCount, setReqCount] = useState(0);
 
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setProfile(undefined);
+        setOpenChat(null);
+        setAuthReady(true);
+      }),
+    []
+  );
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, "messages"), orderBy("createdAt"));
-    return onSnapshot(q, (snap) =>
-      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    return onSnapshot(doc(db, "users", user.uid), (s) =>
+      setProfile(s.exists() ? s.data() : null)
     );
   }, [user]);
 
-  const signUp = async () => {
-    try { await createUserWithEmailAndPassword(auth, email, password); setError(""); }
-    catch (e) { setError(e.message); }
-  };
-  const logIn = async () => {
-    try { await signInWithEmailAndPassword(auth, email, password); setError(""); }
-    catch (e) { setError(e.message); }
-  };
-  const send = async () => {
-    if (!text.trim()) return;
-    await addDoc(collection(db, "messages"), {
-      text, sender: user.email, createdAt: serverTimestamp(),
+  const ready = !!profile?.profileDone;
+
+  useEffect(() => {
+    if (!user || !ready) return;
+    return onSnapshot(collection(db, "users", user.uid, "nicknames"), (snap) => {
+      const m = {};
+      snap.docs.forEach((d) => (m[d.id] = d.data().name));
+      setNicks(m);
     });
-    setText("");
+  }, [user, ready]);
+
+  useEffect(() => {
+    if (!user || !ready) return;
+    const q = query(
+      collection(db, "contactRequests"),
+      where("to", "==", user.uid),
+      where("status", "==", "pending")
+    );
+    return onSnapshot(q, (s) => setReqCount(s.size));
+  }, [user, ready]);
+
+  const saveNick = async (uid, name) => {
+    const ref = doc(db, "users", user.uid, "nicknames", uid);
+    if (name) await setDoc(ref, { name });
+    else await deleteDoc(ref);
   };
 
-  const sendFile = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("upload_preset", UPLOAD_PRESET);
-      const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
-        { method: "POST", body: form }
-      );
-      const data = await res.json();
-      if (!data.secure_url) throw new Error(data.error?.message || "Upload failed");
-      await addDoc(collection(db, "messages"), {
-        text: "", fileUrl: data.secure_url, fileName: file.name,
-        fileType: file.type, sender: user.email, createdAt: serverTimestamp(),
-      });
-    } catch (err) {
-      alert(err.message);
-    }
-    setUploading(false);
-    e.target.value = "";
+  const openPerson = (uid) => {
+    setOpenChat({ id: chatIdFor(user.uid, uid), otherUid: uid, group: false });
+    setTab("chats");
   };
 
-  if (!user) {
+  if (!authReady) return <div className="card">Loading...</div>;
+
+  if (!user) return <AuthScreen />;
+
+  if (profile === undefined) return <div className="card">Loading...</div>;
+
+  if (!ready) {
     return (
       <div className="card">
-        <h2>Cute Chat</h2>
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Password (6+ characters)" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <button onClick={logIn}>Log in</button>
-        <button onClick={signUp}>Sign up</button>
-        <p className="error">{error}</p>
+        <ProfileSetup
+          key={profile?.username || "new"}
+          user={user}
+          profile={profile}
+          onSaved={setProfile}
+        />
       </div>
     );
   }
 
+  const tabBtn = (id, label) => (
+    <button className={tab === id ? "tab active" : "tab"} onClick={() => setTab(id)}>
+      {label}
+    </button>
+  );
+
   return (
     <div className="card">
+      <Receipts user={user} />
+
       <div className="top">
-        <h2>Cute Chat</h2>
+        <div className="who">
+          <Avatar src={profile.photoURL} name={profile.name} size={38} />
+          <div>
+            <h2>{profile.name}</h2>
+            {profile.username && <small className="handle">@{profile.username}</small>}
+          </div>
+        </div>
         <button onClick={() => signOut(auth)}>Log out</button>
       </div>
+
       <div className="tabs">
-        <button className={tab === "chat" ? "tab active" : "tab"} onClick={() => setTab("chat")}>💬 Chat</button>
-        <button className={tab === "board" ? "tab active" : "tab"} onClick={() => setTab("board")}>🎨 Whiteboard</button>
+        {tabBtn("chats", "💬")}
+        {tabBtn("people", reqCount > 0 ? `👥 ${reqCount}` : "👥")}
+        {tabBtn("board", "🎨")}
+        {tabBtn("video", "📹")}
+        {tabBtn("me", "👤")}
       </div>
 
-      {tab === "board" ? (
-        <Whiteboard />
-      ) : (
-        <>
-          <div className="messages">
-            {messages.map((m) => (
-              <div key={m.id} className={m.sender === user.email ? "msg mine" : "msg"}>
-                <small>{m.sender}</small>
-                {m.text && <div>{m.text}</div>}
-                {m.fileUrl && m.fileType?.startsWith("image/") && (
-                  <img src={m.fileUrl} alt={m.fileName} className="media" />
-                )}
-                {m.fileUrl && m.fileType?.startsWith("video/") && (
-                  <video src={m.fileUrl} controls className="media" />
-                )}
-                {m.fileUrl && !m.fileType?.startsWith("image/") && !m.fileType?.startsWith("video/") && (
-                  <a href={m.fileUrl} target="_blank" rel="noreferrer">📄 {m.fileName}</a>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="send">
-            <input type="file" ref={fileRef} onChange={sendFile} style={{ display: "none" }} />
-            <button onClick={() => fileRef.current.click()} disabled={uploading}>
-              {uploading ? "⏳" : "📎"}
-            </button>
-            <input placeholder="Type a message" value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()} />
-            <button onClick={send}>Send</button>
-          </div>
-        </>
+      {tab === "chats" &&
+        (openChat ? (
+          <ChatView
+            key={openChat.id}
+            user={user}
+            profile={profile}
+            chat={openChat}
+            nicks={nicks}
+            onBack={() => setOpenChat(null)}
+            onProfile={setViewUid}
+          />
+        ) : (
+          <Home
+            user={user}
+            profile={profile}
+            nicks={nicks}
+            onOpen={setOpenChat}
+            onProfile={setViewUid}
+            onFindPeople={() => setTab("people")}
+          />
+        ))}
+
+      {tab === "people" && (
+        <Contacts user={user} nicks={nicks} onOpen={openPerson} onProfile={setViewUid} />
+      )}
+
+      {tab === "board" && <Whiteboard />}
+
+      {tab === "me" && (
+        <ProfileSetup
+          user={user}
+          profile={profile}
+          onSaved={() => setTab("chats")}
+          onCancel={() => setTab("chats")}
+        />
+      )}
+
+      <div style={{ display: tab === "video" ? "block" : "none" }}>
+        <VideoCall user={user} />
+      </div>
+
+      {viewUid && (
+        <ProfileView
+          uid={viewUid}
+          myUid={user.uid}
+          nick={nicks[viewUid]}
+          onSaveNick={saveNick}
+          onClose={() => setViewUid(null)}
+        />
       )}
     </div>
   );
 }
-
