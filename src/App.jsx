@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection, onSnapshot, doc, setDoc, deleteDoc, query, where,
 } from "firebase/firestore";
@@ -14,6 +14,11 @@ import Contacts from "./Contacts";
 import ProfileView from "./ProfileView";
 import AuthScreen from "./AuthScreen";
 import Receipts from "./Receipts";
+import GroupInvites from "./GroupInvites";
+import NewGroup from "./NewGroup";
+import GroupInfo from "./GroupInfo";
+import Settings from "./Settings";
+import { applyAppearance } from "./appearance";
 import "./App.css";
 
 const chatIdFor = (a, b) => [a, b].sort().join("_");
@@ -22,11 +27,14 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(undefined);
+  const [prefs, setPrefs] = useState({});
   const [tab, setTab] = useState("chats");
   const [openChat, setOpenChat] = useState(null);
   const [viewUid, setViewUid] = useState(null);
   const [nicks, setNicks] = useState({});
   const [reqCount, setReqCount] = useState(0);
+  const [newGroup, setNewGroup] = useState(false);
+  const [infoGid, setInfoGid] = useState(null);
 
   useEffect(
     () =>
@@ -38,6 +46,20 @@ export default function App() {
       }),
     []
   );
+
+  useEffect(() => {
+    if (!authReady) return;
+    if (!user) {
+      setPrefs({});
+      applyAppearance({});
+      return;
+    }
+    return onSnapshot(doc(db, "users", user.uid, "prefs", "appearance"), (s) => {
+      const p = s.exists() ? s.data() : {};
+      setPrefs(p);
+      applyAppearance(p);
+    });
+  }, [user, authReady]);
 
   useEffect(() => {
     if (!user) return;
@@ -115,7 +137,6 @@ export default function App() {
             {profile.username && <small className="handle">@{profile.username}</small>}
           </div>
         </div>
-        <button onClick={() => signOut(auth)}>Log out</button>
       </div>
 
       <div className="tabs">
@@ -123,7 +144,7 @@ export default function App() {
         {tabBtn("people", reqCount > 0 ? `👥 ${reqCount}` : "👥")}
         {tabBtn("board", "🎨")}
         {tabBtn("video", "📹")}
-        {tabBtn("me", "👤")}
+        {tabBtn("settings", "⚙️")}
       </div>
 
       {tab === "chats" &&
@@ -136,16 +157,24 @@ export default function App() {
             nicks={nicks}
             onBack={() => setOpenChat(null)}
             onProfile={setViewUid}
+            onGroupInfo={setInfoGid}
           />
         ) : (
-          <Home
-            user={user}
-            profile={profile}
-            nicks={nicks}
-            onOpen={setOpenChat}
-            onProfile={setViewUid}
-            onFindPeople={() => setTab("people")}
-          />
+          <>
+            <GroupInvites
+              user={user}
+              onJoined={(gid) => setOpenChat({ id: gid, group: true })}
+            />
+            <Home
+              user={user}
+              profile={profile}
+              nicks={nicks}
+              onOpen={setOpenChat}
+              onProfile={setViewUid}
+              onFindPeople={() => setTab("people")}
+              onNewGroup={() => setNewGroup(true)}
+            />
+          </>
         ))}
 
       {tab === "people" && (
@@ -154,18 +183,38 @@ export default function App() {
 
       {tab === "board" && <Whiteboard />}
 
-      {tab === "me" && (
-        <ProfileSetup
-          user={user}
-          profile={profile}
-          onSaved={() => setTab("chats")}
-          onCancel={() => setTab("chats")}
-        />
-      )}
+      {tab === "settings" && <Settings user={user} profile={profile} prefs={prefs} />}
 
       <div style={{ display: tab === "video" ? "block" : "none" }}>
         <VideoCall user={user} />
       </div>
+
+      {newGroup && (
+        <NewGroup
+          user={user}
+          profile={profile}
+          onClose={() => setNewGroup(false)}
+          onCreated={(gid) => {
+            setNewGroup(false);
+            setOpenChat({ id: gid, group: true });
+          }}
+        />
+      )}
+
+      {infoGid && (
+        <GroupInfo
+          user={user}
+          profile={profile}
+          gid={infoGid}
+          nicks={nicks}
+          onClose={() => setInfoGid(null)}
+          onLeft={() => {
+            setInfoGid(null);
+            setOpenChat(null);
+          }}
+          onProfile={setViewUid}
+        />
+      )}
 
       {viewUid && (
         <ProfileView

@@ -8,7 +8,7 @@ import Avatar from "./Avatar";
 
 const CLOUD_NAME = "n7saeady";
 const UPLOAD_PRESET = "chatapp_upload";
-const FAIL = "Message couldn't be sent. Check your connection, or you may not be able to message this person.";
+const FAIL = "Message couldn't be sent. Check your connection, or you may not be able to message here.";
 
 const clock = (ts) =>
   ts?.toDate
@@ -16,8 +16,10 @@ const clock = (ts) =>
     : "";
 const ms = (x) => (x?.toMillis ? x.toMillis() : 0);
 
-export default function ChatView({ user, profile, chat, nicks, onBack, onProfile }) {
+export default function ChatView({ user, profile, chat, nicks, onBack, onProfile, onGroupInfo }) {
   const [other, setOther] = useState(null);
+  const [groupDoc, setGroupDoc] = useState(null);
+  const [noAccess, setNoAccess] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatDoc, setChatDoc] = useState(null);
   const [iBlocked, setIBlocked] = useState(false);
@@ -30,8 +32,10 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
   const lastTyping = useRef(0);
   const readMarked = useRef("");
 
-  const path = chat.group ? ["messages"] : ["chats", chat.id, "messages"];
-  const title = chat.group ? "Everyone" : nicks[chat.otherUid] || other?.name || "Chat";
+  const path = chat.group ? ["groups", chat.id, "messages"] : ["chats", chat.id, "messages"];
+  const title = chat.group
+    ? groupDoc?.name || "Group"
+    : nicks[chat.otherUid] || other?.name || "Chat";
 
   useEffect(() => {
     if (chat.otherUid) {
@@ -42,9 +46,20 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
   }, []);
 
   useEffect(() => {
+    if (!chat.group) return;
+    return onSnapshot(
+      doc(db, "groups", chat.id),
+      (s) => (s.exists() ? setGroupDoc(s.data()) : setNoAccess(true)),
+      () => setNoAccess(true)
+    );
+  }, []);
+
+  useEffect(() => {
     const q = query(collection(db, ...path), orderBy("createdAt"));
-    return onSnapshot(q, (snap) =>
-      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    return onSnapshot(
+      q,
+      (snap) => setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => setNoAccess(true)
     );
   }, []);
 
@@ -69,7 +84,13 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (chat.group && groupDoc && messages.length > 0) {
+      const last = messages[messages.length - 1];
+      if (last.uid !== user.uid && (groupDoc.unread?.[user.uid] || 0) > 0) {
+        setDoc(doc(db, "groups", chat.id), { unread: { [user.uid]: 0 } }, { merge: true }).catch(() => {});
+      }
+    }
+  }, [messages, groupDoc]);
 
   const markRead = () => {
     if (chat.group || !chatDoc || chatDoc.none) return;
@@ -118,7 +139,17 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
       senderPhoto: profile.photoURL || "",
       createdAt: serverTimestamp(),
     });
-    if (!chat.group) {
+    if (chat.group) {
+      const unread = {};
+      (groupDoc?.members || []).filter((m) => m !== user.uid).forEach((u) => {
+        unread[u] = increment(1);
+      });
+      await setDoc(
+        doc(db, "groups", chat.id),
+        { lastMessage: preview, lastSender: user.uid, lastAt: serverTimestamp(), unread },
+        { merge: true }
+      );
+    } else {
       await setDoc(
         doc(db, "chats", chat.id),
         {
@@ -160,7 +191,7 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
         { method: "POST", body: form }
       );
       const data = await res.json();
-      if (!data.secure_url) throw new Error(data.error?.message || "Upload failed");
+      if (!data.secure_url) throw new Error("Upload failed");
       await post(
         { text: "", fileUrl: data.secure_url, fileName: file.name, fileType: file.type },
         "📎 " + file.name
@@ -185,17 +216,20 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
   };
 
   const theirTyping = chatDoc?.typing?.[chat.otherUid];
-  const isTyping = !!theirTyping && Date.now() - theirTyping < 5000;
+  const isTyping = !chat.group && !!theirTyping && Date.now() - theirTyping < 5000;
 
   return (
     <div className="chatview">
       <div className="chat-head">
         <button className="back" onClick={onBack}>←</button>
         {chat.group ? (
-          <>
-            <div className="avatar fallback" style={{ width: 40, height: 40 }}>👥</div>
-            <b>Everyone</b>
-          </>
+          <div className="head-person" onClick={() => !noAccess && onGroupInfo(chat.id)}>
+            <Avatar src={groupDoc?.photoURL} name={title} size={40} />
+            <div className="head-text">
+              <b>{title}</b>
+              {groupDoc && <small>{groupDoc.members.length} members · tap for info</small>}
+            </div>
+          </div>
         ) : (
           <div className="head-person" onClick={() => onProfile(chat.otherUid)}>
             <Avatar src={other?.photoURL} name={title} size={40} />
@@ -210,11 +244,11 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
           const t = tickFor(m);
           return (
             <div key={m.id} className={mine ? "row mine" : "row"}>
-              {chat.group && (
+              {chat.group && !mine && (
                 <Avatar src={m.senderPhoto} name={m.senderName || "Guest"} size={32} />
               )}
               <div className={mine ? "msg mine" : "msg"}>
-                {chat.group && <small>{nicks[m.uid] || m.senderName || "Guest"}</small>}
+                {chat.group && !mine && <small>{nicks[m.uid] || m.senderName || "Guest"}</small>}
                 {m.text && <div>{m.text}</div>}
                 {m.fileUrl && m.fileType?.startsWith("image/") && (
                   <img src={m.fileUrl} alt={m.fileName} className="media" />
@@ -239,7 +273,11 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
       {isTyping && <small className="typing">typing…</small>}
       {err && <p className="error">{err}</p>}
 
-      {iBlocked ? (
+      {noAccess ? (
+        <div className="blocked-note">
+          <span>You can't see this chat anymore. You may have left the group.</span>
+        </div>
+      ) : iBlocked ? (
         <div className="blocked-note">
           <span>You blocked this person.</span>
           <button onClick={unblock}>Unblock</button>
