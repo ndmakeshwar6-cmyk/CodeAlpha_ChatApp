@@ -3,7 +3,7 @@ import { auth } from "./firebase";
 import { signOut } from "firebase/auth";
 import Avatar from "./Avatar";
 import ProfileSetup from "./ProfileSetup";
-import { applyAppearance } from "./appearance";
+import Appearance from "./Appearance";
 import PrivacySettings from "./PrivacySettings";
 
 const moodOn = (m) => !!m?.expiresAt?.toMillis && m.expiresAt.toMillis() > Date.now();

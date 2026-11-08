@@ -1,10 +1,17 @@
+
 import { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  collection, onSnapshot, doc, setDoc, deleteDoc, query, where,
+  collection,
+  onSnapshot,
+  doc,
+  setDoc,
+  deleteDoc,
+  query,
+  where,
 } from "firebase/firestore";
-import Whiteboard from "./Whiteboard";
+
 import VideoCall from "./VideoCall";
 import ProfileSetup from "./ProfileSetup";
 import Avatar from "./Avatar";
@@ -18,7 +25,7 @@ import GroupInvites from "./GroupInvites";
 import NewGroup from "./NewGroup";
 import GroupInfo from "./GroupInfo";
 import Settings from "./Settings";
-import { applyAppearance } from "./appearance";
+import { applyAppearance } from "./themeEngine";
 import "./App.css";
 
 const chatIdFor = (a, b) => [a, b].sort().join("_");
@@ -36,33 +43,37 @@ export default function App() {
   const [newGroup, setNewGroup] = useState(false);
   const [infoGid, setInfoGid] = useState(null);
 
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, (u) => {
-        setUser(u);
-        setProfile(undefined);
-        setOpenChat(null);
-        setAuthReady(true);
-      }),
-    []
-  );
+  useEffect(() => {
+    return onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setProfile(undefined);
+      setOpenChat(null);
+      setAuthReady(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!authReady) return;
+
     if (!user) {
       setPrefs({});
       applyAppearance({});
       return;
     }
-    return onSnapshot(doc(db, "users", user.uid, "prefs", "appearance"), (s) => {
-      const p = s.exists() ? s.data() : {};
-      setPrefs(p);
-      applyAppearance(p);
-    });
+
+    return onSnapshot(
+      doc(db, "users", user.uid, "prefs", "appearance"),
+      (s) => {
+        const p = s.exists() ? s.data() : {};
+        setPrefs(p);
+        applyAppearance(p);
+      }
+    );
   }, [user, authReady]);
 
   useEffect(() => {
     if (!user) return;
+
     return onSnapshot(doc(db, "users", user.uid), (s) =>
       setProfile(s.exists() ? s.data() : null)
     );
@@ -72,31 +83,42 @@ export default function App() {
 
   useEffect(() => {
     if (!user || !ready) return;
-    return onSnapshot(collection(db, "users", user.uid, "nicknames"), (snap) => {
-      const m = {};
-      snap.docs.forEach((d) => (m[d.id] = d.data().name));
-      setNicks(m);
-    });
+
+    return onSnapshot(
+      collection(db, "users", user.uid, "nicknames"),
+      (snap) => {
+        const m = {};
+        snap.docs.forEach((d) => (m[d.id] = d.data().name));
+        setNicks(m);
+      }
+    );
   }, [user, ready]);
 
   useEffect(() => {
     if (!user || !ready) return;
+
     const q = query(
       collection(db, "contactRequests"),
       where("to", "==", user.uid),
       where("status", "==", "pending")
     );
+
     return onSnapshot(q, (s) => setReqCount(s.size));
   }, [user, ready]);
 
   const saveNick = async (uid, name) => {
     const ref = doc(db, "users", user.uid, "nicknames", uid);
+
     if (name) await setDoc(ref, { name });
     else await deleteDoc(ref);
   };
 
   const openPerson = (uid) => {
-    setOpenChat({ id: chatIdFor(user.uid, uid), otherUid: uid, group: false });
+    setOpenChat({
+      id: chatIdFor(user.uid, uid),
+      otherUid: uid,
+      group: false,
+    });
     setTab("chats");
   };
 
@@ -104,7 +126,9 @@ export default function App() {
 
   if (!user) return <AuthScreen />;
 
-  if (profile === undefined) return <div className="card">Loading...</div>;
+  if (profile === undefined) {
+    return <div className="card">Loading...</div>;
+  }
 
   if (!ready) {
     return (
@@ -120,7 +144,10 @@ export default function App() {
   }
 
   const tabBtn = (id, label) => (
-    <button className={tab === id ? "tab active" : "tab"} onClick={() => setTab(id)}>
+    <button
+      className={tab === id ? "tab active" : "tab"}
+      onClick={() => setTab(id)}
+    >
       {label}
     </button>
   );
@@ -134,7 +161,9 @@ export default function App() {
           <Avatar src={profile.photoURL} name={profile.name} size={38} />
           <div>
             <h2>{profile.name}</h2>
-            {profile.username && <small className="handle">@{profile.username}</small>}
+            {profile.username && (
+              <small className="handle">@{profile.username}</small>
+            )}
           </div>
         </div>
       </div>
@@ -163,8 +192,11 @@ export default function App() {
           <>
             <GroupInvites
               user={user}
-              onJoined={(gid) => setOpenChat({ id: gid, group: true })}
+              onJoined={(gid) =>
+                setOpenChat({ id: gid, group: true })
+              }
             />
+
             <Home
               user={user}
               profile={profile}
@@ -178,12 +210,31 @@ export default function App() {
         ))}
 
       {tab === "people" && (
-        <Contacts user={user} nicks={nicks} onOpen={openPerson} onProfile={setViewUid} />
+        <Contacts
+          user={user}
+          nicks={nicks}
+          onOpen={openPerson}
+          onProfile={setViewUid}
+        />
       )}
 
-      {tab === "board" && <Whiteboard />}
+      {tab === "board" && (
+        <div className="board-empty">
+          <div style={{ fontSize: 48 }}>🎨</div>
+          <h3>Shared Whiteboard</h3>
+          <p>
+            Open a private or group chat to start drawing together.
+            Each conversation has its own whiteboard.
+          </p>
+          <button onClick={() => setTab("chats")}>
+            Go to Chats
+          </button>
+        </div>
+      )}
 
-      {tab === "settings" && <Settings user={user} profile={profile} prefs={prefs} />}
+      {tab === "settings" && (
+        <Settings user={user} profile={profile} prefs={prefs} />
+      )}
 
       <div style={{ display: tab === "video" ? "block" : "none" }}>
         <VideoCall user={user} />

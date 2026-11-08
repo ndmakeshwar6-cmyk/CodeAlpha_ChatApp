@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { db } from "./firebase";
 import {
@@ -5,6 +6,7 @@ import {
   onSnapshot, serverTimestamp, increment,
 } from "firebase/firestore";
 import Avatar from "./Avatar";
+import Whiteboard from "./Whiteboard";
 
 const CLOUD_NAME = "n7saeady";
 const UPLOAD_PRESET = "chatapp_upload";
@@ -14,6 +16,7 @@ const clock = (ts) =>
   ts?.toDate
     ? ts.toDate().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
     : "";
+
 const ms = (x) => (x?.toMillis ? x.toMillis() : 0);
 
 export default function ChatView({ user, profile, chat, nicks, onBack, onProfile, onGroupInfo }) {
@@ -26,56 +29,65 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
   const [text, setText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [err, setErr] = useState("");
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [, tick] = useState(0);
+
   const fileRef = useRef(null);
   const endRef = useRef(null);
   const lastTyping = useRef(0);
   const readMarked = useRef("");
 
-  const path = chat.group ? ["groups", chat.id, "messages"] : ["chats", chat.id, "messages"];
+  const path = chat.group
+    ? ["groups", chat.id, "messages"]
+    : ["chats", chat.id, "messages"];
+
   const title = chat.group
     ? groupDoc?.name || "Group"
     : nicks[chat.otherUid] || other?.name || "Chat";
 
   useEffect(() => {
-    if (chat.otherUid) {
-      getDoc(doc(db, "users", chat.otherUid)).then((s) =>
-        setOther(s.exists() ? s.data() : null)
-      );
-    }
-  }, []);
+    if (!chat.otherUid) return;
+
+    getDoc(doc(db, "users", chat.otherUid)).then((s) =>
+      setOther(s.exists() ? s.data() : null)
+    );
+  }, [chat.otherUid]);
 
   useEffect(() => {
     if (!chat.group) return;
+
     return onSnapshot(
       doc(db, "groups", chat.id),
       (s) => (s.exists() ? setGroupDoc(s.data()) : setNoAccess(true)),
       () => setNoAccess(true)
     );
-  }, []);
+  }, [chat.group, chat.id]);
 
   useEffect(() => {
     const q = query(collection(db, ...path), orderBy("createdAt"));
+
     return onSnapshot(
       q,
       (snap) => setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
       () => setNoAccess(true)
     );
-  }, []);
+  }, [chat.id, chat.group]);
 
   useEffect(() => {
     if (chat.group) return;
+
     return onSnapshot(doc(db, "chats", chat.id), (s) =>
       setChatDoc(s.exists() ? s.data() : { none: true })
     );
-  }, []);
+  }, [chat.group, chat.id]);
 
   useEffect(() => {
     if (!chat.otherUid) return;
+
     return onSnapshot(doc(db, "users", user.uid, "blocked", chat.otherUid), (s) =>
       setIBlocked(s.exists())
     );
-  }, []);
+  }, [chat.otherUid, user.uid]);
 
   useEffect(() => {
     const t = setInterval(() => tick((n) => n + 1), 2000);
@@ -84,34 +96,54 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
+
     if (chat.group && groupDoc && messages.length > 0) {
       const last = messages[messages.length - 1];
+
       if (last.uid !== user.uid && (groupDoc.unread?.[user.uid] || 0) > 0) {
-        setDoc(doc(db, "groups", chat.id), { unread: { [user.uid]: 0 } }, { merge: true }).catch(() => {});
+        setDoc(
+          doc(db, "groups", chat.id),
+          { unread: { [user.uid]: 0 } },
+          { merge: true }
+        ).catch(() => {});
       }
     }
-  }, [messages, groupDoc]);
+  }, [messages, groupDoc, chat.group, chat.id, user.uid]);
 
   const markRead = () => {
     if (chat.group || !chatDoc || chatDoc.none) return;
     if (document.visibilityState !== "visible") return;
+
     const last = messages[messages.length - 1];
+
     if (!last || last.uid === user.uid || !last.createdAt?.toMillis) return;
+
     const unread = chatDoc.unread?.[user.uid] || 0;
-    const needs = ms(chatDoc.lastRead?.[user.uid]) < ms(last.createdAt) || unread > 0;
+    const needs =
+      ms(chatDoc.lastRead?.[user.uid]) < ms(last.createdAt) || unread > 0;
+
     if (!needs || readMarked.current === last.id) return;
+
     readMarked.current = last.id;
+
     setDoc(
       doc(db, "chats", chat.id),
-      { lastRead: { [user.uid]: serverTimestamp() }, unread: { [user.uid]: 0 } },
+      {
+        lastRead: { [user.uid]: serverTimestamp() },
+        unread: { [user.uid]: 0 },
+      },
       { merge: true }
-    ).catch(() => { readMarked.current = ""; });
+    ).catch(() => {
+      readMarked.current = "";
+    });
   };
 
   useEffect(() => {
     markRead();
+
     document.addEventListener("visibilitychange", markRead);
     window.addEventListener("focus", markRead);
+
     return () => {
       document.removeEventListener("visibilitychange", markRead);
       window.removeEventListener("focus", markRead);
@@ -120,10 +152,15 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
 
   const onType = (v) => {
     setText(v);
+
     if (chat.group || iBlocked || !v || !chatDoc || chatDoc.none) return;
+
     const now = Date.now();
+
     if (now - lastTyping.current < 2500) return;
+
     lastTyping.current = now;
+
     setDoc(
       doc(db, "chats", chat.id),
       { typing: { [user.uid]: now } },
@@ -139,14 +176,24 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
       senderPhoto: profile.photoURL || "",
       createdAt: serverTimestamp(),
     });
+
     if (chat.group) {
       const unread = {};
-      (groupDoc?.members || []).filter((m) => m !== user.uid).forEach((u) => {
-        unread[u] = increment(1);
-      });
+
+      (groupDoc?.members || [])
+        .filter((m) => m !== user.uid)
+        .forEach((u) => {
+          unread[u] = increment(1);
+        });
+
       await setDoc(
         doc(db, "groups", chat.id),
-        { lastMessage: preview, lastSender: user.uid, lastAt: serverTimestamp(), unread },
+        {
+          lastMessage: preview,
+          lastSender: user.uid,
+          lastAt: serverTimestamp(),
+          unread,
+        },
         { merge: true }
       );
     } else {
@@ -166,9 +213,12 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
 
   const send = async () => {
     const t = text.trim();
+
     if (!t) return;
+
     setText("");
     setErr("");
+
     try {
       await post({ text: t }, t);
     } catch {
@@ -179,26 +229,40 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
 
   const sendFile = async (e) => {
     const file = e.target.files[0];
+
     if (!file) return;
+
     setUploading(true);
     setErr("");
+
     try {
       const form = new FormData();
+
       form.append("file", file);
       form.append("upload_preset", UPLOAD_PRESET);
+
       const res = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`,
         { method: "POST", body: form }
       );
+
       const data = await res.json();
+
       if (!data.secure_url) throw new Error("Upload failed");
+
       await post(
-        { text: "", fileUrl: data.secure_url, fileName: file.name, fileType: file.type },
+        {
+          text: "",
+          fileUrl: data.secure_url,
+          fileName: file.name,
+          fileType: file.type,
+        },
         "📎 " + file.name
       );
     } catch (error) {
       setErr(error.message === "Upload failed" ? "Upload failed. Try again." : FAIL);
     }
+
     setUploading(false);
     e.target.value = "";
   };
@@ -208,26 +272,45 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
 
   const tickFor = (m) => {
     if (chat.group || m.uid !== user.uid) return null;
+
     const t = ms(m.createdAt);
+
     if (!t) return { icon: "🕓", cls: "" };
-    if (ms(chatDoc?.lastRead?.[chat.otherUid]) >= t) return { icon: "✓✓", cls: "read" };
-    if (ms(chatDoc?.delivered?.[chat.otherUid]) >= t) return { icon: "✓✓", cls: "" };
+
+    if (ms(chatDoc?.lastRead?.[chat.otherUid]) >= t) {
+      return { icon: "✓✓", cls: "read" };
+    }
+
+    if (ms(chatDoc?.delivered?.[chat.otherUid]) >= t) {
+      return { icon: "✓✓", cls: "" };
+    }
+
     return { icon: "✓", cls: "" };
   };
 
   const theirTyping = chatDoc?.typing?.[chat.otherUid];
-  const isTyping = !chat.group && !!theirTyping && Date.now() - theirTyping < 5000;
+  const isTyping =
+    !chat.group && !!theirTyping && Date.now() - theirTyping < 5000;
 
   return (
     <div className="chatview">
       <div className="chat-head">
         <button className="back" onClick={onBack}>←</button>
+
         {chat.group ? (
-          <div className="head-person" onClick={() => !noAccess && onGroupInfo(chat.id)}>
+          <div
+            className="head-person"
+            onClick={() => !noAccess && onGroupInfo(chat.id)}
+          >
             <Avatar src={groupDoc?.photoURL} name={title} size={40} />
+
             <div className="head-text">
               <b>{title}</b>
-              {groupDoc && <small>{groupDoc.members.length} members · tap for info</small>}
+              {groupDoc && (
+                <small>
+                  {groupDoc.members?.length || 0} members · tap for info
+                </small>
+              )}
             </div>
           </div>
         ) : (
@@ -236,29 +319,56 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
             <b>{title}</b>
           </div>
         )}
+
+        {!noAccess && (
+          <button
+            className="whiteboard-toggle"
+            onClick={() => setShowWhiteboard(true)}
+            title="Open shared whiteboard"
+          >
+            🎨 Whiteboard
+          </button>
+        )}
       </div>
 
       <div className="messages">
         {messages.map((m) => {
           const mine = m.uid === user.uid;
           const t = tickFor(m);
+
           return (
             <div key={m.id} className={mine ? "row mine" : "row"}>
               {chat.group && !mine && (
-                <Avatar src={m.senderPhoto} name={m.senderName || "Guest"} size={32} />
+                <Avatar
+                  src={m.senderPhoto}
+                  name={m.senderName || "Guest"}
+                  size={32}
+                />
               )}
+
               <div className={mine ? "msg mine" : "msg"}>
-                {chat.group && !mine && <small>{nicks[m.uid] || m.senderName || "Guest"}</small>}
+                {chat.group && !mine && (
+                  <small>{nicks[m.uid] || m.senderName || "Guest"}</small>
+                )}
+
                 {m.text && <div>{m.text}</div>}
+
                 {m.fileUrl && m.fileType?.startsWith("image/") && (
                   <img src={m.fileUrl} alt={m.fileName} className="media" />
                 )}
+
                 {m.fileUrl && m.fileType?.startsWith("video/") && (
                   <video src={m.fileUrl} controls className="media" />
                 )}
-                {m.fileUrl && !m.fileType?.startsWith("image/") && !m.fileType?.startsWith("video/") && (
-                  <a href={m.fileUrl} target="_blank" rel="noreferrer">📄 {m.fileName}</a>
-                )}
+
+                {m.fileUrl &&
+                  !m.fileType?.startsWith("image/") &&
+                  !m.fileType?.startsWith("video/") && (
+                    <a href={m.fileUrl} target="_blank" rel="noreferrer">
+                      📄 {m.fileName}
+                    </a>
+                  )}
+
                 <div className="msg-meta">
                   <span>{clock(m.createdAt)}</span>
                   {t && <span className={"tick " + t.cls}>{t.icon}</span>}
@@ -267,6 +377,7 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
             </div>
           );
         })}
+
         <div ref={endRef} />
       </div>
 
@@ -284,17 +395,52 @@ export default function ChatView({ user, profile, chat, nicks, onBack, onProfile
         </div>
       ) : (
         <div className="send">
-          <input type="file" ref={fileRef} onChange={sendFile} style={{ display: "none" }} />
+          <input
+            type="file"
+            ref={fileRef}
+            onChange={sendFile}
+            style={{ display: "none" }}
+          />
+
           <button onClick={() => fileRef.current.click()} disabled={uploading}>
             {uploading ? "⏳" : "📎"}
           </button>
+
           <input
             placeholder="Type a message"
             value={text}
             onChange={(e) => onType(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
           />
+
           <button onClick={send}>Send</button>
+        </div>
+      )}
+
+      {showWhiteboard && (
+        <div className="whiteboard-overlay">
+          <div className="whiteboard-window">
+            <div className="whiteboard-window-head">
+              <div>
+                <b>🎨 Shared Whiteboard</b>
+                <small>{title}</small>
+              </div>
+
+              <button
+                className="whiteboard-close"
+                onClick={() => setShowWhiteboard(false)}
+                aria-label="Close whiteboard"
+              >
+                ✕
+              </button>
+            </div>
+
+            <Whiteboard
+              chat={chat}
+              user={user}
+              onClose={() => setShowWhiteboard(false)}
+            />
+          </div>
         </div>
       )}
     </div>
