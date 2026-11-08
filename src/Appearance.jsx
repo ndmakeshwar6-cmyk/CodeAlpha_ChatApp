@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { doc, setDoc } from "firebase/firestore";
@@ -28,7 +29,6 @@ export default function Appearance({ user, prefs }) {
   const [delId, setDelId] = useState(null);
   const [msg, setMsg] = useState("");
 
-  // Keep local settings synchronized with Firebase
   useEffect(() => {
     setOut(prefs.out ?? null);
     setInn(prefs.inn ?? null);
@@ -39,10 +39,8 @@ export default function Appearance({ user, prefs }) {
     setCombos(prefs.combos || []);
   }, [prefs]);
 
-  // Save settings to Firebase
   const save = async (patch) => {
     setMsg("");
-
     try {
       await setDoc(ref, patch, { merge: true });
       return true;
@@ -53,7 +51,6 @@ export default function Appearance({ user, prefs }) {
     }
   };
 
-  // Apply settings immediately
   const show = (patch) => {
     applyAppearance({
       ...prefs,
@@ -67,33 +64,28 @@ export default function Appearance({ user, prefs }) {
     });
   };
 
-  // Theme selection
   const pickTheme = async (value) => {
     setTheme(value);
     show({ theme: value });
     await save({ theme: value });
   };
 
-  // Font selection
   const pickFont = async (value) => {
     setFont(value);
     show({ font: value });
     await save({ font: value });
   };
 
-  // Text size selection
   const pickSize = async (value) => {
     setSize(value);
     show({ size: value });
     await save({ size: value });
   };
 
-  // Colour selection
   const changeColor = (key, value) => {
     if (key === "out") setOut(value);
     if (key === "inn") setInn(value);
     if (key === "accent") setAccent(value);
-
     show({ [key]: value });
   };
 
@@ -107,7 +99,6 @@ export default function Appearance({ user, prefs }) {
     setOut(null);
     setInn(null);
     setAccent(null);
-
     show({ out: null, inn: null, accent: null });
 
     if (await save({ out: null, inn: null, accent: null })) {
@@ -115,7 +106,6 @@ export default function Appearance({ user, prefs }) {
     }
   };
 
-  // Save a new combination or update an existing one
   const saveCombo = async () => {
     const nm = name.trim();
 
@@ -133,7 +123,7 @@ export default function Appearance({ user, prefs }) {
     };
 
     const next = editingId
-      ? combos.map((c) => c.id === editingId ? item : c)
+      ? combos.map((c) => (c.id === editingId ? item : c))
       : [...combos, item];
 
     if (await save({ combos: next })) {
@@ -144,7 +134,6 @@ export default function Appearance({ user, prefs }) {
     }
   };
 
-  // Apply a saved combination
   const useCombo = async (c) => {
     setOut(c.out);
     setInn(c.inn);
@@ -156,16 +145,17 @@ export default function Appearance({ user, prefs }) {
       accent: c.accent,
     });
 
-    if (await save({
-      out: c.out,
-      inn: c.inn,
-      accent: c.accent,
-    })) {
+    if (
+      await save({
+        out: c.out,
+        inn: c.inn,
+        accent: c.accent,
+      })
+    ) {
       setMsg(`${c.name} applied successfully!`);
     }
   };
 
-  // Edit a saved combination
   const editCombo = (c) => {
     setOut(c.out);
     setInn(c.inn);
@@ -182,7 +172,6 @@ export default function Appearance({ user, prefs }) {
     setMsg("Edit your colours and press Update.");
   };
 
-  // Delete a saved combination
   const deleteCombo = async (id) => {
     const next = combos.filter((c) => c.id !== id);
 
@@ -193,178 +182,292 @@ export default function Appearance({ user, prefs }) {
     }
   };
 
+  const colorOptions = [
+    {
+      key: "out",
+      title: "My messages",
+      description: "Your outgoing message bubbles",
+      value: out || DEF.out,
+    },
+    {
+      key: "inn",
+      title: "Their messages",
+      description: "Messages you receive",
+      value: inn || DEF.inn,
+    },
+    {
+      key: "accent",
+      title: "App accent",
+      description: "Buttons and selected elements",
+      value: accent || DEF.accent,
+    },
+  ];
+
   return (
-    <div className="settings-block">
+    <div className="appearance-page">
 
-      <h4 className="sec">Theme</h4>
+      <div className="appearance-intro">
+        <h3>Make Tether yours ✨</h3>
+        <p>Personalise your chats, colours and typography.</p>
+      </div>
 
-      <div className="opt-row">
-        {[
-          ["light", "☀️ Light"],
-          ["dark", "🌙 Dark"],
-          ["system", "💻 System"],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            className={theme === id ? "opt on" : "opt"}
-            onClick={() => pickTheme(id)}
-          >
-            {label}
+      <section className="appearance-section">
+        <div className="appearance-section-head">
+          <h4>Theme</h4>
+          <p>Choose how Tether looks.</p>
+        </div>
+
+        <div className="appearance-options">
+          {[
+            ["light", "☀️", "Light"],
+            ["dark", "🌙", "Dark"],
+            ["system", "💻", "System"],
+          ].map(([id, emoji, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={theme === id}
+              className={`appearance-option ${theme === id ? "is-selected" : ""}`}
+              onClick={() => pickTheme(id)}
+            >
+              <span>{emoji}</span>
+              <span>{label}</span>
+              {theme === id && <span className="appearance-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="appearance-section">
+        <div className="appearance-section-head">
+          <h4>Chat colours</h4>
+          <p>Pick colours for your messages and app controls.</p>
+        </div>
+
+        <div className="appearance-color-grid">
+          {colorOptions.map((item) => (
+            <label className="appearance-color-card" key={item.key}>
+              <span className="appearance-color-info">
+                <strong>{item.title}</strong>
+                <small>{item.description}</small>
+              </span>
+
+              <span className="appearance-color-control">
+                <input
+                  type="color"
+                  aria-label={item.title}
+                  value={item.value}
+                  onChange={(e) => changeColor(item.key, e.target.value)}
+                />
+                <span className="appearance-color-code">
+                  {item.value.toUpperCase()}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+
+        <div className="appearance-preview">
+          <div className="appearance-preview-heading">
+            <span>Live preview</span>
+            <small>See your colours in action</small>
+          </div>
+
+          <div className="appearance-preview-chat">
+            <div
+              className="appearance-preview-bubble"
+              style={{
+                background: inn || DEF.inn,
+                color: readable(inn || DEF.inn),
+              }}
+            >
+              Hey! How are you? 👋
+              <small>10:30</small>
+            </div>
+
+            <div
+              className="appearance-preview-bubble outgoing"
+              style={{
+                background: out || DEF.out,
+                color: readable(out || DEF.out),
+              }}
+            >
+              Doing great, thanks! 💗
+              <small>10:31 ✓✓</small>
+            </div>
+          </div>
+        </div>
+
+        <div className="appearance-actions">
+          <button type="button" className="appearance-primary" onClick={saveColors}>
+            Save colours
           </button>
-        ))}
-      </div>
+          <button type="button" className="appearance-secondary" onClick={resetColors}>
+            Reset to default
+          </button>
+        </div>
+      </section>
 
-      <h4 className="sec">Colours</h4>
-
-      <div className="color-row">
-        <label>My messages</label>
-        <input
-          type="color"
-          value={out || DEF.out}
-          onChange={(e) => changeColor("out", e.target.value)}
-        />
-      </div>
-
-      <div className="color-row">
-        <label>Their messages</label>
-        <input
-          type="color"
-          value={inn || DEF.inn}
-          onChange={(e) => changeColor("inn", e.target.value)}
-        />
-      </div>
-
-      <div className="color-row">
-        <label>App accent</label>
-        <input
-          type="color"
-          value={accent || DEF.accent}
-          onChange={(e) => changeColor("accent", e.target.value)}
-        />
-      </div>
-
-      <div className="preview">
-        <div
-          className="msg"
-          style={{
-            background: inn || DEF.inn,
-            color: readable(inn || DEF.inn),
-          }}
-        >
-          Hey! How are you? 👋
+      <section className="appearance-section">
+        <div className="appearance-section-head">
+          <h4>Colour combinations</h4>
+          <p>Save your favourite palettes and switch between them.</p>
         </div>
 
-        <div
-          className="msg mine"
-          style={{
-            background: out || DEF.out,
-            color: readable(out || DEF.out),
-            alignSelf: "flex-end",
-          }}
-        >
-          Doing great, thanks! 💗
+        <div className="appearance-combo-list">
+          {combos.length === 0 && (
+            <div className="appearance-empty">
+              <span>🎨</span>
+              <p>No saved combinations yet.</p>
+              <small>Create your first palette below.</small>
+            </div>
+          )}
+
+          {combos.map((c) => (
+            <div className="appearance-combo" key={c.id}>
+              <div className="appearance-combo-details">
+                <div className="appearance-swatches">
+                  <span style={{ background: c.out }} />
+                  <span style={{ background: c.inn }} />
+                  <span style={{ background: c.accent }} />
+                </div>
+                <strong>{c.name}</strong>
+              </div>
+
+              <div className="appearance-combo-actions">
+                {delId === c.id ? (
+                  <>
+                    <button
+                      type="button"
+                      className="appearance-danger"
+                      onClick={() => deleteCombo(c.id)}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      className="appearance-secondary"
+                      onClick={() => setDelId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="appearance-primary"
+                      onClick={() => useCombo(c)}
+                    >
+                      Use
+                    </button>
+                    <button
+                      type="button"
+                      className="appearance-secondary"
+                      onClick={() => editCombo(c)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="appearance-icon-button"
+                      aria-label={`Delete ${c.name}`}
+                      onClick={() => setDelId(c.id)}
+                    >
+                      🗑️
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
 
-      <div className="opt-row">
-        <button onClick={saveColors}>Save colours</button>
-        <button className="secondary" onClick={resetColors}>
-          Reset to default
-        </button>
-      </div>
+        <div className="appearance-save-combo">
+          <input
+            type="text"
+            placeholder="Name your colour combination"
+            value={name}
+            maxLength={24}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveCombo();
+            }}
+          />
 
-      <h4 className="sec">Colour combinations</h4>
+          <button
+            type="button"
+            className="appearance-primary"
+            onClick={saveCombo}
+          >
+            {editingId ? "Update" : "Save palette"}
+          </button>
 
-      {combos.map((c) => (
-        <div className="combo" key={c.id}>
-          <span className="swatch" style={{ background: c.out }} />
-          <span className="swatch" style={{ background: c.inn }} />
-          <span className="swatch" style={{ background: c.accent }} />
-
-          <b className="grow">{c.name}</b>
-
-          {delId === c.id ? (
-            <>
-              <button className="mini-btn" onClick={() => deleteCombo(c.id)}>
-                Delete
-              </button>
-              <button
-                className="secondary mini-btn"
-                onClick={() => setDelId(null)}
-              >
-                Cancel
-              </button>
-            </>
-          ) : (
-            <>
-              <button className="mini-btn" onClick={() => useCombo(c)}>
-                Use
-              </button>
-              <button
-                className="secondary mini-btn"
-                onClick={() => editCombo(c)}
-              >
-                Edit
-              </button>
-              <button
-                className="secondary mini-btn"
-                onClick={() => setDelId(c.id)}
-              >
-                🗑
-              </button>
-            </>
+          {editingId && (
+            <button
+              type="button"
+              className="appearance-secondary"
+              onClick={() => {
+                setEditingId(null);
+                setName("");
+              }}
+            >
+              Cancel
+            </button>
           )}
         </div>
-      ))}
+      </section>
 
-      {combos.length === 0 && (
-        <small className="hint">No saved combinations yet.</small>
+      <section className="appearance-section">
+        <div className="appearance-section-head">
+          <h4>Font</h4>
+          <p>Choose a font that feels like you.</p>
+        </div>
+
+        <div className="appearance-options appearance-font-options">
+          {FONTS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              aria-pressed={font === f.id}
+              className={`appearance-option ${font === f.id ? "is-selected" : ""}`}
+              style={{ fontFamily: f.css }}
+              onClick={() => pickFont(f.id)}
+            >
+              {f.name}
+              {font === f.id && <span className="appearance-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="appearance-section">
+        <div className="appearance-section-head">
+          <h4>Text size</h4>
+          <p>Make messages comfortable to read.</p>
+        </div>
+
+        <div className="appearance-options appearance-size-options">
+          {SIZES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              aria-pressed={size === s.id}
+              className={`appearance-option ${size === s.id ? "is-selected" : ""}`}
+              onClick={() => pickSize(s.id)}
+            >
+              {s.name}
+              {size === s.id && <span className="appearance-check">✓</span>}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {msg && (
+        <div className="appearance-feedback" role="status">
+          {msg}
+        </div>
       )}
-
-      <div className="row-inline">
-        <input
-          placeholder="Name this combination"
-          value={name}
-          maxLength={24}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        <button onClick={saveCombo}>
-          {editingId ? "Update" : "Save"}
-        </button>
-      </div>
-
-      <h4 className="sec">Font</h4>
-
-      <div className="opt-row">
-        {FONTS.map((f) => (
-          <button
-            key={f.id}
-            className={font === f.id ? "opt on" : "opt"}
-            style={{ fontFamily: f.css }}
-            onClick={() => pickFont(f.id)}
-          >
-            {f.name}
-          </button>
-        ))}
-      </div>
-
-      <h4 className="sec">Text size</h4>
-
-      <div className="opt-row">
-        {SIZES.map((s) => (
-          <button
-            key={s.id}
-            className={size === s.id ? "opt on" : "opt"}
-            onClick={() => pickSize(s.id)}
-          >
-            {s.name}
-          </button>
-        ))}
-      </div>
-
-      {msg && <small>{msg}</small>}
-
     </div>
   );
 }

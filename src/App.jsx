@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -12,7 +11,6 @@ import {
   where,
 } from "firebase/firestore";
 
-import VideoCall from "./VideoCall";
 import ProfileSetup from "./ProfileSetup";
 import Avatar from "./Avatar";
 import Home from "./Home";
@@ -172,7 +170,6 @@ export default function App() {
         {tabBtn("chats", "💬")}
         {tabBtn("people", reqCount > 0 ? `👥 ${reqCount}` : "👥")}
         {tabBtn("board", "🎨")}
-        {tabBtn("video", "📹")}
         {tabBtn("settings", "⚙️")}
       </div>
 
@@ -192,9 +189,7 @@ export default function App() {
           <>
             <GroupInvites
               user={user}
-              onJoined={(gid) =>
-                setOpenChat({ id: gid, group: true })
-              }
+              onJoined={(gid) => setOpenChat({ id: gid, group: true })}
             />
 
             <Home
@@ -226,19 +221,13 @@ export default function App() {
             Open a private or group chat to start drawing together.
             Each conversation has its own whiteboard.
           </p>
-          <button onClick={() => setTab("chats")}>
-            Go to Chats
-          </button>
+          <button onClick={() => setTab("chats")}>Go to Chats</button>
         </div>
       )}
 
       {tab === "settings" && (
         <Settings user={user} profile={profile} prefs={prefs} />
       )}
-
-      <div style={{ display: tab === "video" ? "block" : "none" }}>
-        <VideoCall user={user} />
-      </div>
 
       {newGroup && (
         <NewGroup
