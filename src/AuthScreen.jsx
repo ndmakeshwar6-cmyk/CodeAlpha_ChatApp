@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { auth, db } from "./firebase";
 import {
@@ -23,12 +24,25 @@ export default function AuthScreen() {
 
   const friendly = (e) => {
     const c = e.code || "";
-    if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found"))
-      return "Wrong email or password";
-    if (c.includes("email-already-in-use")) return "That email already has an account";
-    if (c.includes("weak-password")) return "Password is too weak";
-    if (c.includes("invalid-email")) return "That email doesn't look right";
-    if (c.includes("too-many-requests")) return "Too many tries. Please wait a bit";
+
+    if (
+      c.includes("invalid-credential") ||
+      c.includes("wrong-password") ||
+      c.includes("user-not-found")
+    ) return "Wrong email or password";
+
+    if (c.includes("email-already-in-use"))
+      return "That email already has an account";
+
+    if (c.includes("weak-password"))
+      return "Password is too weak";
+
+    if (c.includes("invalid-email"))
+      return "That email doesn't look right";
+
+    if (c.includes("too-many-requests"))
+      return "Too many tries. Please wait a bit";
+
     return e.message;
   };
 
@@ -36,48 +50,77 @@ export default function AuthScreen() {
     setMode(m);
     setError("");
     setInfo("");
+    setPassword("");
+    setConfirm("");
   };
 
   const logIn = async () => {
     setError("");
     setInfo("");
+
     if (!email.trim() || !password) {
       setError("Enter your email and password");
       return;
     }
+
     setBusy(true);
+
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
     } catch (e) {
       setError(friendly(e));
     }
+
     setBusy(false);
   };
 
   const register = async () => {
     setError("");
     setInfo("");
+
     const uname = username.trim().toLowerCase();
+
     if (!displayName.trim()) return setError("Enter your name");
-    if (!USERNAME_RE.test(uname)) return setError("Username: 3-20 letters, numbers, _ or .");
-    if (password.length < 8) return setError("Password needs at least 8 characters");
-    if (password !== confirm) return setError("Passwords do not match");
+
+    if (!USERNAME_RE.test(uname))
+      return setError("Username: 3-20 letters, numbers, _ or .");
+
+    if (!email.trim()) return setError("Enter your email");
+
+    if (password.length < 8)
+      return setError("Password needs at least 8 characters");
+
+    if (password !== confirm)
+      return setError("Passwords do not match");
+
     setBusy(true);
+
     try {
       const taken = await getDoc(doc(db, "usernames", uname));
+
       if (taken.exists()) {
         setError("That username is taken");
         setBusy(false);
         return;
       }
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+      const cred = await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
       const uid = cred.user.uid;
+
       try {
         await runTransaction(db, async (tx) => {
           const ref = doc(db, "usernames", uname);
           const snap = await tx.get(ref);
+
           if (snap.exists()) throw new Error("taken");
+
           tx.set(ref, { uid });
+
           tx.set(doc(db, "users", uid), {
             name: displayName.trim(),
             nameLower: displayName.trim().toLowerCase(),
@@ -90,91 +133,227 @@ export default function AuthScreen() {
           });
         });
       } catch {
-        /* the profile screen will ask for a username again */
+        // The profile screen will ask for a username again.
       }
     } catch (e) {
       setError(friendly(e));
     }
+
     setBusy(false);
   };
 
   const reset = async () => {
     setError("");
     setInfo("");
+
     if (!email.trim()) {
       setError("Type your email first");
       return;
     }
+
     setBusy(true);
+
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      setInfo("If that email has an account, a reset link is on its way. Check spam too.");
+      setInfo(
+        "If that email has an account, a reset link is on its way. Check spam too."
+      );
     } catch (e) {
       setError(friendly(e));
     }
+
     setBusy(false);
   };
 
   const passwordBox = (value, setValue, placeholder) => (
-    <div className="pw">
+    <div className="auth-password">
       <input
         type={show ? "text" : "password"}
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        autoComplete={
+          mode === "login" ? "current-password" : "new-password"
+        }
       />
-      <button type="button" className="secondary" onClick={() => setShow(!show)}>
+
+      <button
+        type="button"
+        className="auth-eye"
+        onClick={() => setShow(!show)}
+        aria-label={show ? "Hide password" : "Show password"}
+      >
         {show ? "🙈" : "👁"}
       </button>
     </div>
   );
 
+  const heading = {
+    login: "Welcome back",
+    register: "Create your account",
+    forgot: "Let's get you back in",
+  };
+
+  const subtitle = {
+    login: "Your little corner of connection awaits.",
+    register: "A little space to stay connected.",
+    forgot: "We'll send you a link to reset your password.",
+  };
+
   return (
-    <div className="card">
-      <h2>
-        {mode === "login" && "Welcome back to Tether"}
-        {mode === "register" && "Create your Tether account"}
-        {mode === "forgot" && "Reset your password"}
-      </h2>
+    <main className="auth-screen">
+      <div className="auth-decoration auth-decoration-one">♡</div>
+      <div className="auth-decoration auth-decoration-two">✦</div>
+      <div className="auth-decoration auth-decoration-three">♡</div>
 
-      {mode === "register" && (
-        <>
-          <input placeholder="Display name" value={displayName} maxLength={30}
-            onChange={(e) => setDisplayName(e.target.value)} />
-          <input placeholder="Username (like shilpa_123)" value={username} maxLength={20}
-            onChange={(e) => setUsername(e.target.value.toLowerCase())} />
-        </>
-      )}
+      <section className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-logo">♡</div>
+          <span>Tether</span>
+        </div>
 
-      <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <div className="auth-heading">
+          <h1>{heading[mode]}</h1>
+          <p>{subtitle[mode]}</p>
+        </div>
 
-      {mode !== "forgot" && passwordBox(password, setPassword, "Password")}
-      {mode === "register" && passwordBox(confirm, setConfirm, "Confirm password")}
+        <div className="auth-form">
+          {mode === "register" && (
+            <>
+              <label className="auth-label">Your name</label>
+              <input
+                className="auth-input"
+                placeholder="What should we call you?"
+                value={displayName}
+                maxLength={30}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
 
-      {mode === "login" && (
-        <>
-          <button onClick={logIn} disabled={busy}>{busy ? "..." : "Log in"}</button>
-          <button className="link" onClick={() => switchMode("forgot")}>Forgot password?</button>
-          <button className="link" onClick={() => switchMode("register")}>New here? Create an account</button>
-        </>
-      )}
+              <label className="auth-label">Username</label>
+              <input
+                className="auth-input"
+                placeholder="e.g. shilpa_123"
+                value={username}
+                maxLength={20}
+                onChange={(e) =>
+                  setUsername(e.target.value.toLowerCase())
+                }
+              />
+            </>
+          )}
 
-      {mode === "register" && (
-        <>
-          <button onClick={register} disabled={busy}>{busy ? "..." : "Create account"}</button>
-          <button className="link" onClick={() => switchMode("login")}>I already have an account</button>
-        </>
-      )}
+          <label className="auth-label">Email address</label>
+          <input
+            className="auth-input"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
 
-      {mode === "forgot" && (
-        <>
-          <button onClick={reset} disabled={busy}>{busy ? "..." : "Send reset link"}</button>
-          <button className="link" onClick={() => switchMode("login")}>Back to log in</button>
-        </>
-      )}
+          {mode !== "forgot" && (
+            <>
+              <label className="auth-label">Password</label>
+              {passwordBox(password, setPassword, "Enter your password")}
+            </>
+          )}
 
-      {error && <p className="error">{error}</p>}
-      {info && <p className="info">{info}</p>}
-    </div>
+          {mode === "register" && (
+            <>
+              <label className="auth-label">Confirm password</label>
+              {passwordBox(confirm, setConfirm, "Enter your password again")}
+            </>
+          )}
+
+          {error && (
+            <div className="auth-message auth-error">
+              {error}
+            </div>
+          )}
+
+          {info && (
+            <div className="auth-message auth-info">
+              {info}
+            </div>
+          )}
+
+          {mode === "login" && (
+            <>
+              <button
+                className="auth-primary"
+                onClick={logIn}
+                disabled={busy}
+              >
+                {busy ? "Logging in..." : "Log in"}
+              </button>
+
+              <button
+                className="auth-text-button"
+                onClick={() => switchMode("forgot")}
+              >
+                Forgot password?
+              </button>
+
+              <div className="auth-divider">
+                <span />
+                <small>NEW TO TETHER?</small>
+                <span />
+              </div>
+
+              <button
+                className="auth-secondary"
+                onClick={() => switchMode("register")}
+              >
+                Create an account
+                <span>→</span>
+              </button>
+            </>
+          )}
+
+          {mode === "register" && (
+            <>
+              <button
+                className="auth-primary"
+                onClick={register}
+                disabled={busy}
+              >
+                {busy ? "Creating account..." : "Create account"}
+              </button>
+
+              <button
+                className="auth-text-button"
+                onClick={() => switchMode("login")}
+              >
+                Already have an account? Log in
+              </button>
+            </>
+          )}
+
+          {mode === "forgot" && (
+            <>
+              <button
+                className="auth-primary"
+                onClick={reset}
+                disabled={busy}
+              >
+                {busy ? "Sending..." : "Send reset link"}
+              </button>
+
+              <button
+                className="auth-text-button"
+                onClick={() => switchMode("login")}
+              >
+                ← Back to log in
+              </button>
+            </>
+          )}
+        </div>
+
+        <footer className="auth-footer">
+          Made for the connections that matter <span>♡</span>
+        </footer>
+      </section>
+    </main>
   );
 }

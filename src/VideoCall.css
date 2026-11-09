@@ -1,0 +1,327 @@
+/* Tether video call — clean, restrained, responsive */
+.video-call-window {
+  width: min(1080px, 94vw);
+  max-width: 1080px;
+  height: min(780px, 90vh);
+  min-height: 0;
+  padding: 24px;
+  gap: 20px;
+  border-radius: 22px;
+  background: var(--surface, #211d27);
+  color: var(--text, #f5f2f7);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+
+.video-call-window .whiteboard-window-head {
+  flex: 0 0 auto;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.12));
+}
+
+.video-call-window .whiteboard-window-head b {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.video-call-window .whiteboard-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,.14));
+  background: var(--surface2, rgba(255,255,255,.06));
+  color: var(--text, #f5f2f7);
+  transition: background .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.video-call-window .whiteboard-close:hover {
+  background: var(--surface3, rgba(255,255,255,.11));
+  transform: translateY(-1px);
+}
+
+.video-call-window .vc-call {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  min-height: 0;
+  width: 100%;
+}
+
+.video-call-window .vc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+}
+
+.video-call-window .vc-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 220px;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 18px;
+  background: #111014;
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+}
+
+.video-call-window .vc-tile video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  background: #111014;
+}
+
+.video-call-window .vc-camera-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  background: radial-gradient(ellipse at center, #29242f 0%, #17141b 68%, #111014 100%);
+}
+
+.video-call-window .vc-camera-placeholder img,
+.video-call-window .vc-avatar-fallback {
+  width: clamp(88px, 12vw, 132px);
+  height: clamp(88px, 12vw, 132px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255,255,255,.16);
+  box-shadow: 0 8px 28px rgba(0,0,0,.28);
+}
+
+.video-call-window .vc-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: #393340;
+  color: #f4f0f6;
+  font-size: 42px;
+  font-weight: 600;
+}
+
+.video-call-window .vc-camera-placeholder > span {
+  color: rgba(255,255,255,.68);
+  font-size: 13px;
+  letter-spacing: .02em;
+}
+
+.video-call-window .vc-nameplate {
+  position: absolute;
+  z-index: 2;
+  left: 14px;
+  bottom: 14px;
+  max-width: calc(100% - 28px);
+  overflow: hidden;
+  padding: 7px 11px;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 9px;
+  background: rgba(12,10,14,.68);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  backdrop-filter: blur(12px);
+}
+
+.video-call-window .vc-waiting {
+  align-self: center;
+  color: var(--muted, #aaa2b0);
+  font-size: 13px;
+}
+
+.video-call-window .vc-note {
+  margin: 0;
+  color: var(--muted, #aaa2b0);
+  font-size: 13px;
+  text-align: center;
+}
+
+.video-call-window .vc-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border, rgba(255,255,255,.12));
+}
+
+.video-call-window .vc-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 112px;
+  min-height: 48px;
+  padding: 0 17px;
+  border: 1px solid var(--border, rgba(255,255,255,.14));
+  border-radius: 14px;
+  background: var(--surface2, rgba(255,255,255,.07));
+  color: var(--text, #f5f2f7);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease, color .18s ease;
+}
+
+.video-call-window .vc-control:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent, #b7a8d9);
+  background: var(--surface3, rgba(255,255,255,.12));
+}
+
+.video-call-window .vc-control:focus-visible,
+.video-call-window .whiteboard-close:focus-visible {
+  outline: 2px solid var(--accent, #b7a8d9);
+  outline-offset: 3px;
+}
+
+.video-call-window .vc-control.is-off {
+  background: rgba(255,255,255,.12);
+  color: var(--muted, #c5bdca);
+}
+
+.video-call-window .vc-control.is-active {
+  border-color: var(--accent, #b7a8d9);
+  background: color-mix(in srgb, var(--accent, #b7a8d9) 16%, transparent);
+}
+
+.video-call-window .vc-control.vc-leave {
+  border-color: #8f414b;
+  background: #7d303b;
+  color: #fff;
+}
+
+.video-call-window .vc-control.vc-leave:hover {
+  border-color: #b85b66;
+  background: #913b47;
+}
+
+.video-call-window .vc-prejoin {
+  align-items: center;
+  text-align: center;
+  padding: 28px 12px;
+}
+
+.video-call-window .vc-prejoin-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid var(--border, rgba(255,255,255,.14));
+  border-radius: 18px;
+  background: var(--surface2, rgba(255,255,255,.07));
+  color: var(--text, #f5f2f7);
+}
+
+.video-call-window .vc-prejoin h3 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.video-call-window .vc-prejoin p {
+  max-width: 390px;
+  margin: 0;
+  color: var(--muted, #aaa2b0);
+  line-height: 1.6;
+}
+
+.video-call-window .vc-primary-action,
+.video-call-window .vc-text-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 13px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.video-call-window .vc-primary-action {
+  border: 1px solid var(--accent, #b7a8d9);
+  background: var(--accent, #b7a8d9);
+  color: #17131b;
+}
+
+.video-call-window .vc-primary-action:hover {
+  filter: brightness(1.06);
+}
+
+.video-call-window .vc-text-action {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted, #aaa2b0);
+}
+
+.video-call-window .vc-text-action:hover {
+  color: var(--text, #f5f2f7);
+  background: var(--surface2, rgba(255,255,255,.07));
+}
+
+@media (max-width: 680px) {
+  .video-call-window {
+    width: min(100%, 96vw);
+    height: min(760px, 92vh);
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .video-call-window .vc-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    overflow-y: auto;
+  }
+
+  .video-call-window .vc-tile {
+    min-height: 190px;
+    aspect-ratio: 16 / 9;
+  }
+
+  .video-call-window .vc-camera-placeholder {
+    min-height: 190px;
+  }
+
+  .video-call-window .vc-controls {
+    gap: 8px;
+    padding-top: 14px;
+  }
+
+  .video-call-window .vc-control {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 0;
+    padding: 0 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-call-window .vc-control,
+  .video-call-window .whiteboard-close {
+    transition: none;
+  }
+}

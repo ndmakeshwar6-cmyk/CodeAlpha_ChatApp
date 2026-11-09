@@ -1,0 +1,531 @@
+/* =========================================
+   TETHER — STICKER PICKER
+========================================= */
+
+.tether-sticker-picker {
+  position: absolute;
+  z-index: 1200;
+  left: 0;
+  bottom: calc(100% + 12px);
+  display: flex;
+  flex-direction: column;
+  width: min(370px, calc(100vw - 32px));
+  max-height: min(470px, 72vh);
+  overflow: hidden;
+  color: var(--text, #393239);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 18px;
+  box-shadow: 0 16px 42px rgba(35, 24, 31, 0.16);
+}
+
+.tether-sticker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid var(--border, #eee4e8);
+}
+
+.tether-sticker-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tether-sticker-header strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.tether-sticker-header span,
+.tether-sticker-pack-info small,
+.tether-sticker-empty p,
+.tether-sticker-file-count {
+  color: var(--muted, #91858b);
+  font-size: 12px;
+}
+
+.tether-sticker-picker button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.tether-sticker-close,
+.tether-sticker-modal-heading button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted, #91858b);
+  background: var(--surface2, #f8f3f5);
+  font-size: 20px;
+}
+
+.tether-sticker-search {
+  padding: 12px 14px 8px;
+}
+
+.tether-sticker-search input,
+.tether-sticker-create-modal input:not([type="file"]) {
+  width: 100%;
+  height: 39px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 10px;
+  outline: none;
+  color: var(--text, #393239);
+  background: var(--surface2, #faf7f8);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tether-sticker-search input:focus,
+.tether-sticker-create-modal input:focus {
+  border-color: var(--accent, #e7a0b8);
+}
+
+.tether-sticker-tabs {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 5px 12px 10px;
+  border-bottom: 1px solid var(--border, #eee4e8);
+}
+
+.tether-sticker-tabs button {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--muted, #91858b);
+  background: transparent;
+  font-size: 12px;
+}
+
+.tether-sticker-tabs button.active {
+  color: var(--text, #393239);
+  background: var(--accent-soft, #f8e6ed);
+  font-weight: 600;
+}
+
+.tether-sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  min-height: 170px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.tether-sticker-item {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 7px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.tether-sticker-item:hover {
+  background: var(--accent-soft, #f8e6ed);
+  transform: translateY(-2px);
+}
+
+.tether-sticker-item img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tether-sticker-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 170px;
+  gap: 7px;
+  padding: 20px;
+  text-align: center;
+}
+
+.tether-sticker-empty > span {
+  color: var(--accent, #d98ba8);
+  font-size: 26px;
+}
+
+.tether-sticker-empty strong {
+  font-size: 13px;
+}
+
+.tether-sticker-empty p {
+  max-width: 230px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.tether-sticker-empty button,
+.tether-sticker-discover-title button,
+.tether-sticker-add-pack,
+.tether-sticker-create-modal > button[type="submit"] {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--text, #393239);
+  background: var(--accent-soft, #f8e6ed);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tether-sticker-discover {
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.tether-sticker-discover-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.tether-sticker-discover-title strong {
+  font-size: 13px;
+}
+
+.tether-sticker-pack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tether-sticker-pack-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 12px;
+}
+
+.tether-sticker-pack-preview {
+  display: grid;
+  place-items: center;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  padding: 5px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface2, #faf7f8);
+  font-size: 23px;
+}
+
+.tether-sticker-pack-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tether-sticker-pack-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 4px;
+}
+
+.tether-sticker-pack-info strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tether-sticker-add-pack:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.tether-sticker-pack-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border, #eee4e8);
+}
+
+.tether-sticker-pack-heading strong {
+  flex: 1;
+  overflow: hidden;
+  font-size: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tether-sticker-pack-heading button {
+  border: 0;
+  color: var(--muted, #91858b);
+  background: transparent;
+  font-size: 11px;
+}
+
+.tether-sticker-notice {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border, #eee4e8);
+  color: var(--muted, #91858b);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tether-sticker-modal-backdrop {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(25, 20, 28, 0.35);
+}
+
+.tether-sticker-create-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(320px, 100%);
+  padding: 17px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 16px;
+  background: var(--surface, #fff);
+  box-shadow: 0 15px 40px rgba(25, 20, 28, 0.18);
+}
+
+.tether-sticker-modal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tether-sticker-modal-heading strong {
+  font-size: 14px;
+}
+
+.tether-sticker-create-modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tether-sticker-create-modal input[type="file"] {
+  width: 100%;
+  color: var(--muted, #91858b);
+  font-size: 11px;
+}
+
+.tether-sticker-create-modal label small {
+  color: var(--muted, #91858b);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.tether-sticker-create-modal > button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .tether-sticker-picker {
+    width: min(340px, calc(100vw - 24px));
+    max-height: 68vh;
+  }
+
+  .tether-sticker-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+}
+
+
+.tether-sticker-installed-packs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid var(--border, #eee4e8);
+}
+
+.tether-sticker-installed-pack {
+  display: flex;
+  flex: 0 0 62px;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--muted, #91858b);
+  background: transparent;
+  font-size: 10px;
+}
+
+.tether-sticker-installed-pack:hover {
+  background: var(--accent-soft, #f8e6ed);
+}
+
+.tether-sticker-installed-pack img {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
+.tether-sticker-installed-pack > span:last-child {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tether-sticker-public-note {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 9px;
+  color: var(--muted, #91858b);
+  background: var(--surface2, #faf7f8);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Sticker messages inside the conversation */
+.tether-chat-sticker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  max-width: min(210px, 55vw);
+  padding: 3px;
+}
+
+.tether-chat-sticker img {
+  display: block;
+  width: 100%;
+  max-height: 210px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.tether-save-sticker {
+  align-self: flex-start;
+  padding: 4px 9px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 8px;
+  color: var(--muted, #91858b);
+  background: var(--surface, #fff);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.tether-save-sticker:hover {
+  color: var(--text, #393239);
+  background: var(--accent-soft, #f8e6ed);
+}
+
+.sticker-toggle {
+  min-width: 42px;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 13px;
+  color: var(--text, #393239);
+  background: var(--surface2, #faf7f8);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.sticker-toggle:hover,
+.sticker-toggle[aria-expanded="true"] {
+  background: var(--accent-soft, #f8e6ed);
+}
+
+@media (max-width: 480px) {
+  .tether-chat-sticker {
+    max-width: min(180px, 58vw);
+  }
+}
+
+
+/* Colour-only correction: neutral controls and sticker tiles.
+   Keep all existing layout, sizing, spacing and typography unchanged. */
+.tether-sticker-picker .tether-sticker-tabs button,
+.tether-sticker-picker .tether-sticker-tabs button.active,
+.tether-sticker-picker .tether-sticker-close,
+.tether-sticker-picker .tether-sticker-modal-heading button,
+.tether-sticker-picker .tether-sticker-item,
+.tether-sticker-picker .tether-sticker-empty button,
+.tether-sticker-picker .tether-sticker-discover-title button,
+.tether-sticker-picker .tether-sticker-add-pack,
+.tether-sticker-picker .tether-sticker-create-modal > button[type="submit"],
+.tether-sticker-picker .tether-sticker-installed-pack,
+.tether-sticker-picker .tether-sticker-pack-heading button,
+.tether-sticker-picker .tether-save-sticker {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.tether-sticker-picker .tether-sticker-tabs button.active {
+  color: var(--text, #393239) !important;
+  background-color: rgba(35, 31, 27, 0.07) !important;
+}
+
+.tether-sticker-picker .tether-sticker-tabs button:hover,
+.tether-sticker-picker .tether-sticker-close:hover,
+.tether-sticker-picker .tether-sticker-modal-heading button:hover,
+.tether-sticker-picker .tether-sticker-item:hover,
+.tether-sticker-picker .tether-sticker-item:focus-visible,
+.tether-sticker-picker .tether-sticker-empty button:hover,
+.tether-sticker-picker .tether-sticker-discover-title button:hover,
+.tether-sticker-picker .tether-sticker-add-pack:hover:not(:disabled),
+.tether-sticker-picker .tether-sticker-create-modal > button[type="submit"]:hover:not(:disabled),
+.tether-sticker-picker .tether-sticker-installed-pack:hover,
+.tether-sticker-picker .tether-sticker-pack-heading button:hover,
+.tether-sticker-picker .tether-save-sticker:hover {
+  color: var(--text, #393239) !important;
+  background-color: rgba(35, 31, 27, 0.075) !important;
+}
+
+.tether-sticker-picker .tether-sticker-search input:focus,
+.tether-sticker-picker .tether-sticker-create-modal input:focus {
+  border-color: var(--border, #eee4e8) !important;
+  box-shadow: none !important;
+}
+.tether-sticker-picker .tether-giphy-attribution,
+.tether-sticker-picker .tether-giphy-attribution:visited {
+  color: var(--muted, #91858b) !important;
+  font-size: 10px;
+  font-weight: 500;
+  text-decoration: none !important;
+  white-space: nowrap;
+  opacity: 0.8;
+  transition: color 150ms ease, opacity 150ms ease;
+}
+
+.tether-sticker-picker .tether-giphy-attribution:hover {
+  color: var(--text, #393239) !important;
+  text-decoration: none !important;
+  opacity: 1;
+}

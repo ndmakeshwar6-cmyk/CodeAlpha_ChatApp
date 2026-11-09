@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -27,6 +28,58 @@ import { applyAppearance } from "./themeEngine";
 import "./App.css";
 
 const chatIdFor = (a, b) => [a, b].sort().join("_");
+
+// Minimal monochrome line icons
+function TabIcon({ name }) {
+  const common = {
+    width: 21,
+    height: 21,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+  };
+
+  const paths = {
+    chats: (
+      <>
+        <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" />
+      </>
+    ),
+    people: (
+      <>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="10" cy="7" r="4" />
+        <path d="M20 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </>
+    ),
+    board: (
+      <>
+        <path d="M12 3v3" />
+        <path d="M5.5 5.5 7.6 7.6" />
+        <path d="M3 12h3" />
+        <path d="M18 12h3" />
+        <path d="M16.4 7.6l2.1-2.1" />
+        <path d="M7 16.5 5 19" />
+        <path d="M17 16.5 19 19" />
+        <path d="M12 9v12" />
+        <path d="M8 21h8" />
+      </>
+    ),
+    settings: (
+      <>
+        <circle cx="12" cy="12" r="3" />
+        <path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9z" />
+      </>
+    ),
+  };
+
+  return <svg {...common}>{paths[name]}</svg>;
+}
 
 export default function App() {
   const [authReady, setAuthReady] = useState(false);
@@ -141,12 +194,17 @@ export default function App() {
     );
   }
 
-  const tabBtn = (id, label) => (
+  const tabBtn = (id, label, icon, count = 0) => (
     <button
+      key={id}
       className={tab === id ? "tab active" : "tab"}
       onClick={() => setTab(id)}
+      aria-label={label}
+      aria-current={tab === id ? "page" : undefined}
+      title={label}
     >
-      {label}
+      <TabIcon name={icon} />
+      {count > 0 && <span className="tab-count">{count}</span>}
     </button>
   );
 
@@ -167,10 +225,10 @@ export default function App() {
       </div>
 
       <div className="tabs">
-        {tabBtn("chats", "💬")}
-        {tabBtn("people", reqCount > 0 ? `👥 ${reqCount}` : "👥")}
-        {tabBtn("board", "🎨")}
-        {tabBtn("settings", "⚙️")}
+        {tabBtn("chats", "Chats", "chats")}
+        {tabBtn("people", "Contacts", "people", reqCount)}
+        {tabBtn("board", "Whiteboard", "board")}
+        {tabBtn("settings", "Settings", "settings")}
       </div>
 
       {tab === "chats" &&
@@ -186,10 +244,12 @@ export default function App() {
             onGroupInfo={setInfoGid}
           />
         ) : (
-          <>
+          <div className="home-content-scroll">
             <GroupInvites
               user={user}
-              onJoined={(gid) => setOpenChat({ id: gid, group: true })}
+              onJoined={(gid) =>
+                setOpenChat({ id: gid, group: true })
+              }
             />
 
             <Home
@@ -201,7 +261,7 @@ export default function App() {
               onFindPeople={() => setTab("people")}
               onNewGroup={() => setNewGroup(true)}
             />
-          </>
+          </div>
         ))}
 
       {tab === "people" && (
@@ -215,13 +275,17 @@ export default function App() {
 
       {tab === "board" && (
         <div className="board-empty">
-          <div style={{ fontSize: 48 }}>🎨</div>
+          <div className="board-empty-icon">
+            <TabIcon name="board" />
+          </div>
           <h3>Shared Whiteboard</h3>
           <p>
             Open a private or group chat to start drawing together.
             Each conversation has its own whiteboard.
           </p>
-          <button onClick={() => setTab("chats")}>Go to Chats</button>
+          <button onClick={() => setTab("chats")}>
+            Go to Chats
+          </button>
         </div>
       )}
 
@@ -236,7 +300,8 @@ export default function App() {
           onClose={() => setNewGroup(false)}
           onCreated={(gid) => {
             setNewGroup(false);
-            setOpenChat({ id: gid, group: true });
+            setOpenChat(null);
+            setTab("chats");
           }}
         />
       )}

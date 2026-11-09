@@ -1,0 +1,409 @@
+
+/* Sticker messages: transparent presentation and click-to-open actions */
+.msg:has(.tether-sticker-actions) {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+.tether-chat-sticker {
+  position: relative;
+  display: block;
+  max-width: min(220px, 56vw);
+  padding: 0;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.tether-sticker-actions {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.tether-sticker-image-trigger {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  cursor: pointer;
+}
+
+.tether-sticker-image-trigger img {
+  display: block;
+  width: auto;
+  max-width: min(220px, 56vw);
+  max-height: 230px;
+  object-fit: contain;
+  background: transparent !important;
+  border: 0;
+  box-shadow: none;
+}
+
+.tether-sticker-action-menu {
+  position: absolute;
+  z-index: 1300;
+  left: 8px;
+  bottom: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+  box-shadow: 0 10px 30px rgba(35, 24, 31, 0.16);
+}
+
+.tether-sticker-action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text, #393239);
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tether-sticker-action-menu button:hover {
+  background: var(--accent-soft, #f8e6ed);
+}
+
+.tether-sticker-action-menu button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.tether-sticker-pack-backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(25, 20, 28, .28);
+}
+
+.tether-sticker-pack-dialog {
+  width: min(340px, 100%);
+  max-height: min(440px, 80vh);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 16px;
+  color: var(--text, #393239);
+  background: var(--surface, #fff);
+  box-shadow: 0 18px 48px rgba(35, 24, 31, .2);
+}
+
+.tether-sticker-pack-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.tether-sticker-pack-dialog-heading button {
+  border: 0;
+  background: transparent;
+  color: var(--muted, #91858b);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.tether-sticker-pack-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 230px;
+  overflow-y: auto;
+}
+
+.tether-sticker-pack-options > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text, #393239);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tether-sticker-pack-options > button:hover {
+  background: var(--accent-soft, #f8e6ed);
+}
+
+.tether-sticker-pack-options img,
+.tether-pack-placeholder {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  object-fit: contain;
+  background: var(--surface2, #faf7f8);
+}
+
+.tether-sticker-pack-options > button > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.tether-pack-chevron {
+  color: var(--muted, #91858b);
+  font-size: 20px;
+}
+
+.tether-sticker-no-packs {
+  margin: 8px 0;
+  color: var(--muted, #91858b);
+  font-size: 12px;
+}
+
+.tether-create-pack-choice {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--text, #393239);
+  background: var(--accent-soft, #f8e6ed);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tether-create-pack-form {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.tether-create-pack-form label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tether-create-pack-form input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 11px;
+  border: 1px solid var(--border, #eee4e8);
+  border-radius: 9px;
+  color: var(--text, #393239);
+  background: var(--surface2, #faf7f8);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tether-create-pack-form > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.tether-create-pack-form button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent-soft, #f8e6ed);
+  color: var(--text, #393239);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tether-sticker-action-notice,
+.tether-sticker-action-toast {
+  display: block;
+  margin: 7px 0 0;
+  color: var(--muted, #91858b);
+  font-size: 11px;
+}
+/* Neater sticker action menu */
+.tether-sticker-action-menu {
+  position: absolute;
+  z-index: 1300;
+  left: 8px;
+  bottom: calc(100% + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 220px;
+  padding: 8px;
+  background: #fffdfb;
+  border: 1px solid #f2e5e9;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(70, 45, 55, 0.13);
+}
+
+.tether-sticker-action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 13px;
+  border: none;
+  border-radius: 11px;
+  color: #51434a;
+  background: #f8e8ed;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.tether-sticker-action-menu button:hover {
+  background: #f2d6e0;
+  transform: translateX(2px);
+}
+
+.tether-sticker-action-menu button span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  font-size: 16px;
+  color: #a95f7a;
+}
+
+.tether-sticker-action-menu button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* Minimal, elegant sticker action menu */
+.tether-sticker-action-menu {
+  position: absolute;
+  z-index: 1300;
+  left: 8px;
+  bottom: calc(100% + 10px);
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  width: 210px;
+  padding: 6px;
+
+  background: #ffffff;
+  border: 1px solid #eae7e8;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.tether-sticker-action-menu button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  width: 100%;
+  padding: 11px 12px;
+
+  border: none;
+  border-radius: 8px;
+
+  color: #403b3d;
+  background: transparent;
+
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.tether-sticker-action-menu button:hover {
+  background: #f5f4f4;
+}
+
+.tether-sticker-action-menu button span {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  color: #777174;
+  font-size: 15px;
+}
+
+.tether-sticker-action-menu button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+/* Force neutral sticker menu colours */
+.tether-sticker-actions .tether-sticker-action-menu {
+  background: #ffffff !important;
+  border: 1px solid #e8e5e5 !important;
+}
+
+.tether-sticker-actions .tether-sticker-action-menu button {
+  background: transparent !important;
+  color: #403b3d !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.tether-sticker-actions .tether-sticker-action-menu button:hover {
+  background: #f5f5f5 !important;
+}
+
+.tether-sticker-actions .tether-sticker-action-menu button span {
+  color: #777777 !important;
+}
+/* Theme-aware sticker action menu */
+
+/* Light mode */
+.tether-sticker-actions .tether-sticker-action-menu {
+  background: #ffffff !important;
+  border: 1px solid #e8e5e5 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.tether-sticker-actions .tether-sticker-action-menu button {
+  color: #403b3d !important;
+  background: transparent !important;
+}
+
+.tether-sticker-actions .tether-sticker-action-menu button:hover {
+  background: #f3f2f2 !important;
+}
+
+/* Dark mode */
+.dark .tether-sticker-actions .tether-sticker-action-menu,
+[data-theme="dark"] .tether-sticker-actions .tether-sticker-action-menu {
+  background: #242326 !important;
+  border: 1px solid #3d3a3e !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.dark .tether-sticker-actions .tether-sticker-action-menu button,
+[data-theme="dark"] .tether-sticker-actions .tether-sticker-action-menu button {
+  color: #eeeeef !important;
+  background: transparent !important;
+}
+
+.dark .tether-sticker-actions .tether-sticker-action-menu button:hover,
+[data-theme="dark"] .tether-sticker-actions .tether-sticker-action-menu button:hover {
+  background: #353338 !important;
+}
