@@ -39,6 +39,8 @@ import Whiteboard from "./Whiteboard";
 import VideoCall from "./VideoCall";
 import StickerPicker from "./StickerPicker";
 import StickerActions from "./StickerActions";
+import EmojiPicker from "emoji-picker-react";
+import VoiceNoteComposer, { VoiceNotePlayer } from "./VoiceNotes";
 
 const CLOUD_NAME = "n7saeady";
 
@@ -95,6 +97,93 @@ const getDateLabel = (timestamp) => {
   });
 };
 
+// Use Apple's emoji artwork everywhere instead of the computer's native emoji font.
+const appleEmojiUrl = (emoji) => {
+  const code = Array.from(emoji)
+    .map((character) => character.codePointAt(0).toString(16))
+    .filter((code) => code !== "fe0f")
+    .join("-");
+  return `https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${code}.png`;
+};
+
+const renderAppleEmojiText = (value) => {
+  if (!value) return value;
+  if (typeof Intl.Segmenter !== "function") return value;
+
+  const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  return Array.from(segmenter.segment(value), ({ segment }, index) => {
+    if (!/\p{Extended_Pictographic}/u.test(segment)) return segment;
+    return (
+      <img
+        key={`${index}-${segment}`}
+        src={appleEmojiUrl(segment)}
+        alt={segment}
+        title={segment}
+        className="tether-apple-emoji"
+        onError={(event) => {
+          event.currentTarget.replaceWith(document.createTextNode(segment));
+        }}
+      />
+    );
+  });
+};
+
+const AppleEmoji = ({ emoji, size = 24 }) => (
+  <img
+    src={appleEmojiUrl(emoji)}
+    alt={emoji}
+    title={emoji}
+    className="tether-apple-emoji"
+    style={{ width: size, height: size, objectFit: "contain", verticalAlign: "middle", marginInlineEnd: 3, flex: "0 0 auto" }}
+    onError={(event) => {
+      event.currentTarget.replaceWith(document.createTextNode(emoji));
+    }}
+  />
+);
+
+// Line icons for the message-selection toolbar (same style as the other chat icons).
+const TOOLBAR_ICON_PATHS = {
+  back: <path d="M19 12H5M11 6l-6 6 6 6" />,
+  reply: <path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 6 6v3" />,
+  star: (
+    <path d="m12 3.5 2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8Z" />
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.2M12 7.8h.01" />
+    </>
+  ),
+  trash: (
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a1.5 1.5 0 0 0 1.5 1.4h7A1.5 1.5 0 0 0 17 19l1-12M9 7V4.5h6V7" />
+  ),
+  forward: <path d="m15 5 6 6-6 6M21 11H10a6 6 0 0 0-6 6v2" />,
+  more: (
+    <>
+      <circle cx="12" cy="5.5" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="12" cy="18.5" r="1.2" fill="currentColor" />
+    </>
+  ),
+};
+
+const ToolbarIcon = ({ name, filled = false }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="22"
+    height="22"
+    fill={filled ? "currentColor" : "none"}
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    style={{ display: "block", flexShrink: 0 }}
+  >
+    {TOOLBAR_ICON_PATHS[name]}
+  </svg>
+);
+
 export default function ChatView({
 
   user,
@@ -112,6 +201,30 @@ export default function ChatView({
   onGroupInfo,
 
 }) {
+
+  // Keep the app's available height in sync with Android's visible viewport.
+  // This matters when the on-screen keyboard opens or closes.
+  useEffect(() => {
+    const viewport = window.visualViewport;
+
+    const updateVisibleHeight = () => {
+      const height = viewport?.height || window.innerHeight;
+      document.documentElement.style.setProperty(
+        "--tether-visual-height",
+        `${Math.round(height)}px`
+      );
+    };
+
+    updateVisibleHeight();
+    viewport?.addEventListener("resize", updateVisibleHeight);
+    window.addEventListener("resize", updateVisibleHeight);
+
+    return () => {
+      viewport?.removeEventListener("resize", updateVisibleHeight);
+      window.removeEventListener("resize", updateVisibleHeight);
+      document.documentElement.style.removeProperty("--tether-visual-height");
+    };
+  }, []);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showStickerPicker, setShowStickerPicker] = useState(false);
@@ -143,6 +256,12 @@ export default function ChatView({
   // Message selection and actions
 
   const [selectedIds, setSelectedIds] = useState([]);
+  const [messageReactions, setMessageReactions] = useState([]);
+  const [reactionPickerFor, setReactionPickerFor] = useState(null);
+  const [reactionDetailsFor, setReactionDetailsFor] = useState(null);
+  const [customizingReactions, setCustomizingReactions] = useState(false);
+  const [quickReactions, setQuickReactions] = useState(["❤️", "😂", "🥹", "😍", "👍", "🎉"]);
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
 
   const [showMore, setShowMore] = useState(false);
 
@@ -191,6 +310,10 @@ export default function ChatView({
     ? ["groups", chat.id, "pinnedMessages"]
 
     : ["chats", chat.id, "pinnedMessages"];
+
+  const reactionPath = chat.group
+    ? ["groups", chat.id, "messageReactions"]
+    : ["chats", chat.id, "messageReactions"];
 
   const title = chat.group
 
@@ -277,6 +400,24 @@ export default function ChatView({
     );
 
   }, [chat.id, chat.group]);
+
+  // Listen to reactions in this conversation in real time.
+  useEffect(() => {
+    setMessageReactions([]);
+    return onSnapshot(
+      collection(db, ...reactionPath),
+      (snap) => setMessageReactions(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      (error) => console.error("Message reactions error:", error)
+    );
+  }, [chat.id, chat.group]);
+
+  // Load this user's saved quick reactions.
+  useEffect(() => {
+    return onSnapshot(doc(db, "users", user.uid, "prefs", "reactions"), (snap) => {
+      const saved = snap.data()?.emojis;
+      if (Array.isArray(saved) && saved.length) setQuickReactions(saved.slice(0, 6));
+    });
+  }, [user.uid]);
 
   // Listen to private chat metadata.
 
@@ -642,6 +783,107 @@ export default function ChatView({
 
   };
 
+  // Convert browser-recorded WebM/Opus audio into broadly supported PCM WAV.
+  // Cloudinary's video endpoint accepts WAV audio; this avoids unsupported WebM audio uploads.
+  const convertVoiceToWav = async (recordedBlob) => {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      throw new Error("Audio conversion is not supported by this browser.");
+    }
+
+    const audioContext = new AudioContextClass();
+    try {
+      const decoded = await audioContext.decodeAudioData(await recordedBlob.arrayBuffer());
+      const targetRate = 16000;
+      const ratio = decoded.sampleRate / targetRate;
+      const outputLength = Math.ceil(decoded.length / ratio);
+      const mono = new Float32Array(outputLength);
+
+      for (let i = 0; i < outputLength; i += 1) {
+        const sourceIndex = Math.min(decoded.length - 1, Math.floor(i * ratio));
+        let sum = 0;
+        for (let channel = 0; channel < decoded.numberOfChannels; channel += 1) {
+          sum += decoded.getChannelData(channel)[sourceIndex] || 0;
+        }
+        mono[i] = sum / decoded.numberOfChannels;
+      }
+
+      const bytesPerSample = 2;
+      const dataSize = mono.length * bytesPerSample;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+      const writeText = (offset, value) => {
+        for (let i = 0; i < value.length; i += 1) {
+          view.setUint8(offset + i, value.charCodeAt(i));
+        }
+      };
+
+      writeText(0, "RIFF");
+      view.setUint32(4, 36 + dataSize, true);
+      writeText(8, "WAVE");
+      writeText(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, targetRate, true);
+      view.setUint32(28, targetRate * bytesPerSample, true);
+      view.setUint16(32, bytesPerSample, true);
+      view.setUint16(34, 16, true);
+      writeText(36, "data");
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      for (let i = 0; i < mono.length; i += 1) {
+        const sample = Math.max(-1, Math.min(1, mono[i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += bytesPerSample;
+      }
+
+      return new Blob([buffer], { type: "audio/wav" });
+    } finally {
+      await audioContext.close();
+    }
+  };
+
+  const sendVoiceNote = async (blob, duration) => {
+    setUploading(true);
+    setErr("");
+    try {
+      const wavBlob = await convertVoiceToWav(blob);
+      const file = new File([wavBlob], "voice-message.wav", { type: "audio/wav" });
+      const form = new FormData();
+      form.append("file", file);
+      form.append("upload_preset", UPLOAD_PRESET);
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
+        { method: "POST", body: form }
+      );
+      const data = await response.json();
+
+      if (!response.ok || !data.secure_url) {
+        throw new Error(data.error?.message || "Cloudinary couldn't accept the converted voice recording.");
+      }
+
+      await post(
+        {
+          type: "audio",
+          text: "",
+          fileUrl: data.secure_url,
+          fileName: file.name,
+          fileType: "audio/wav",
+          duration,
+        },
+        "Voice message"
+      );
+    } catch (error) {
+      console.error("Voice note upload failed:", error);
+      throw new Error(error.message || FAIL);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const sendSticker = async (sticker) => {
     if (!sticker?.url) return;
 
@@ -826,17 +1068,11 @@ export default function ChatView({
   };
 
   const startPress = (id) => {
-
     longPressed.current = false;
-
     pressTimer.current = setTimeout(() => {
-
       longPressed.current = true;
-
-      selectMessage(id);
-
+      setReactionPickerFor(id);
     }, 500);
-
   };
 
   const endPress = () => {
@@ -871,6 +1107,62 @@ export default function ChatView({
 
     selectMessage(id);
 
+  };
+
+  const reactionDocId = (messageId) => `${messageId}_${user.uid}`;
+
+  const reactionsFor = (messageId) =>
+    messageReactions.filter((reaction) => reaction.messageId === messageId);
+
+  const groupedReactionsFor = (messageId) => {
+    const grouped = new Map();
+    reactionsFor(messageId).forEach((reaction) => {
+      const current = grouped.get(reaction.emoji) || [];
+      current.push(reaction);
+      grouped.set(reaction.emoji, current);
+    });
+    return Array.from(grouped.entries()).map(([emoji, people]) => ({ emoji, people }));
+  };
+
+  const toggleReaction = async (messageId, emoji) => {
+    const existing = messageReactions.find(
+      (reaction) => reaction.messageId === messageId && reaction.uid === user.uid
+    );
+    const ref = doc(db, ...reactionPath, reactionDocId(messageId));
+    setReactionPickerFor(null);
+    setCustomizingReactions(false);
+    try {
+      if (existing?.emoji === emoji) {
+        await deleteDoc(ref);
+      } else {
+        await setDoc(ref, {
+          messageId,
+          uid: user.uid,
+          emoji,
+          displayName: profile?.name || user.displayName || "Friend",
+          photoURL: profile?.photoURL || user.photoURL || "",
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      console.error("Message reaction error:", error);
+      setErr("Couldn't update this reaction. Please try again.");
+    }
+  };
+
+  const saveQuickReactions = async (next) => {
+    if (!next.length || next.length > 6) return;
+    setQuickReactions(next);
+    try {
+      await setDoc(
+        doc(db, "users", user.uid, "prefs", "reactions"),
+        { emojis: next },
+        { merge: true }
+      );
+    } catch (error) {
+      console.error("Save quick reactions error:", error);
+      setErr("Couldn't save your quick reactions.");
+    }
   };
 
   // Star / unstar privately for this user.
@@ -1316,6 +1608,46 @@ export default function ChatView({
   return (
 
     <div className="chatview">
+      <style>{`
+        .tether-apple-emoji {
+          display: inline-block;
+          width: 1em;
+          height: 1em;
+          max-width: 1em;
+          box-sizing: border-box;
+          object-fit: contain;
+          vertical-align: -0.12em;
+          margin-inline: 0 0.18em;
+          line-height: 1;
+          flex: 0 0 auto;
+        }
+        /* Keep the time and delivery ticks together, even for emoji-only messages. */
+        .chatview .msg:not(.sticker-only-message) {
+          min-width: 112px;
+          box-sizing: border-box;
+        }
+        .chatview .msg-meta {
+          display: flex;
+          flex-wrap: nowrap;
+          white-space: nowrap;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 5px;
+        }
+        .chatview .msg-meta > span {
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .msg .message-text {
+          display: block;
+          box-sizing: border-box;
+          max-width: 100%;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          word-break: normal;
+          line-height: 1.45;
+        }
+      `}</style>
 
       {/* WHATSAPP-STYLE SELECTION TOOLBAR */}
 
@@ -1323,19 +1655,11 @@ export default function ChatView({
 
         <div className="message-selection-toolbar">
 
-          <button onClick={clearSelection} title="Close selection">
-
-            ←
-
-          </button>
+          <button onClick={clearSelection} title="Close selection"><ToolbarIcon name="back" /></button>
 
           <b>{selectedIds.length}</b>
 
-          <button onClick={replySelected} title="Reply">
-
-            ↶
-
-          </button>
+          <button onClick={replySelected} title="Reply"><ToolbarIcon name="reply" /></button>
 
           <button
 
@@ -1347,29 +1671,13 @@ export default function ChatView({
 
             title="Star message"
 
-          >
+          ><ToolbarIcon name="star" filled={!!selectedMessage && starredIds.has(selectedMessage.id)} /></button>
 
-            ⭐
+          <button onClick={showInfo} title="Message info"><ToolbarIcon name="info" /></button>
 
-          </button>
+          <button onClick={deleteSelected} title="Delete"><ToolbarIcon name="trash" /></button>
 
-          <button onClick={showInfo} title="Message info">
-
-            ⓘ
-
-          </button>
-
-          <button onClick={deleteSelected} title="Delete">
-
-            🗑
-
-          </button>
-
-          <button onClick={openForward} title="Forward">
-
-            ➦
-
-          </button>
+          <button onClick={openForward} title="Forward"><ToolbarIcon name="forward" /></button>
 
           <div className="message-more-wrap">
 
@@ -1379,11 +1687,7 @@ export default function ChatView({
 
               title="More options"
 
-            >
-
-              ⋮
-
-            </button>
+            ><ToolbarIcon name="more" /></button>
 
             {showMore && (
 
@@ -1569,7 +1873,14 @@ export default function ChatView({
 
           <div className="pinned-messages-heading">
 
-            <span>📌</span>
+            <span className="pinned-heading-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none"
+                stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"
+                strokeLinejoin="round">
+                <path d="M8 4h8l-1 5 3 3v2H6v-2l3-3-1-5Z" />
+                <path d="m12 14-1 7" />
+              </svg>
+            </span>
 
             <b>Pinned messages</b>
 
@@ -1642,6 +1953,9 @@ export default function ChatView({
                   mine ? "mine" : "",
                   isSelected ? "message-selected" : "",
                 ].join(" ")}
+                style={{ position: "relative" }}
+                onMouseEnter={() => setHoveredMessageId(m.id)}
+                onMouseLeave={() => setHoveredMessageId((current) => current === m.id ? null : current)}
                 onTouchStart={() => startPress(m.id)}
                 onTouchEnd={endPress}
                 onTouchMove={endPress}
@@ -1656,6 +1970,17 @@ export default function ChatView({
                   />
                 )}
 
+                <div
+                  className="message-bubble-stack"
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: mine ? "flex-end" : "flex-start",
+                    width: "fit-content",
+                    maxWidth: "min(78%, 520px)",
+                    minWidth: 0,
+                  }}
+                >
                 <div
                   className={`${mine ? "msg mine" : "msg"} ${
                     m.stickerUrl && !m.text && !m.fileUrl ? "sticker-only-message" : ""
@@ -1688,11 +2013,15 @@ export default function ChatView({
                       }}
                     >
                       <b>{m.replyTo.senderName}</b>
-                      <span>{m.replyTo.text || "Sticker"}</span>
+                      <span>{renderAppleEmojiText(m.replyTo.text || "Sticker")}</span>
                     </div>
                   )}
 
-                  {m.text && <div>{m.text}</div>}
+                  {m.text && (
+                    <div className="message-text">
+                      {renderAppleEmojiText(m.text)}
+                    </div>
+                  )}
 
                   {m.stickerUrl && (
                     <div className="tether-chat-sticker">
@@ -1704,6 +2033,10 @@ export default function ChatView({
                     </div>
                   )}
 
+                  {m.type === "audio" && m.fileUrl && (
+                    <VoiceNotePlayer src={m.fileUrl} duration={m.duration || 0} />
+                  )}
+
                   {m.fileUrl && m.fileType?.startsWith("image/") && (
                     <img src={m.fileUrl} alt={m.fileName} className="media" />
                   )}
@@ -1713,20 +2046,184 @@ export default function ChatView({
                   )}
 
                   {m.fileUrl &&
+                    m.type !== "audio" &&
                     !m.fileType?.startsWith("image/") &&
                     !m.fileType?.startsWith("video/") && (
                       <a href={m.fileUrl} target="_blank" rel="noreferrer">
-                        📄 {m.fileName}
+                        <AppleEmoji emoji="📄" size={17} /> {m.fileName}
                       </a>
                     )}
 
                   <div className="msg-meta">
-                    {isPinned && <span title="Pinned">📌</span>}
+                    {isPinned && (
+                      <span className="message-pin-icon" title="Pinned" aria-label="Pinned">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none"
+                          stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"
+                          strokeLinejoin="round" aria-hidden="true">
+                          <path d="M8 4h8l-1 5 3 3v2H6v-2l3-3-1-5Z" />
+                          <path d="m12 14-1 7" />
+                        </svg>
+                      </span>
+                    )}
                     {isStarred && <span title="Starred">⭐</span>}
                     <span>{clock(m.createdAt)}</span>
                     {t && <span className={"tick " + t.cls}>{t.icon}</span>}
                   </div>
+
                 </div>
+
+                  {groupedReactionsFor(m.id).length > 0 && (
+                    <div
+                      className="message-reactions-below"
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 5,
+                        marginTop: 5,
+                        maxWidth: "100%",
+                        justifyContent: mine ? "flex-end" : "flex-start",
+                      }}
+                    >
+                      {groupedReactionsFor(m.id).map(({ emoji, people }) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReactionDetailsFor({ messageId: m.id, emoji });
+                          }}
+                          title={people.map((person) => person.displayName || "Friend").join(", ")}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 5,
+                            border: people.some((person) => person.uid === user.uid)
+                              ? "1px solid var(--text, #333)" : "1px solid var(--border, #ddd)",
+                            borderRadius: 999, padding: "3px 8px",
+                            background: people.some((person) => person.uid === user.uid)
+                              ? "var(--hover, rgba(0,0,0,.08))" : "var(--card, #fff)",
+                            color: "var(--text, #222)", cursor: "pointer", fontSize: 13,
+                          }}
+                        >
+                          <AppleEmoji emoji={emoji} size={20} /><span>{people.length}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                </div>
+
+                {(hoveredMessageId === m.id || reactionPickerFor === m.id) && !selectedIds.length && (
+                  <button
+                    type="button"
+                    aria-label="React to message"
+                    title="React"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCustomizingReactions(false);
+                      setReactionPickerFor((current) => current === m.id ? null : m.id);
+                    }}
+                    className="tether-reaction-thought-button"
+                    style={{
+                      position: "absolute", top: -3, right: mine ? "auto" : 1,
+                      left: mine ? 1 : "auto", zIndex: 20, width: 40, height: 43,
+                      padding: 0, border: 0, background: "transparent",
+                      cursor: "pointer", display: "grid", placeItems: "start center",
+                    }}
+                  >
+                    <span style={{
+                      position: "relative", width: 34, height: 32,
+                      display: "grid", placeItems: "center",
+                      borderRadius: "50%", border: "1px solid var(--border, #eee4e8)",
+                      background: "var(--card, #fff)",
+                      boxShadow: "0 3px 10px rgba(0,0,0,.12)",
+                      transition: "transform 150ms ease, box-shadow 150ms ease",
+                    }}>
+                      <AppleEmoji emoji="😊" size={19} />
+                    </span>
+                    <span aria-hidden="true" style={{
+                      position: "absolute", left: 7, bottom: 3, width: 8, height: 8,
+                      borderRadius: "50%", border: "1px solid var(--border, #eee4e8)",
+                      background: "var(--card, #fff)", boxShadow: "0 2px 5px rgba(0,0,0,.09)",
+                    }} />
+                    <span aria-hidden="true" style={{
+                      position: "absolute", left: 2, bottom: 0, width: 4, height: 4,
+                      borderRadius: "50%", border: "1px solid var(--border, #eee4e8)",
+                      background: "var(--card, #fff)",
+                    }} />
+                  </button>
+                )}
+
+                {reactionPickerFor === m.id && (
+                  <div
+                    role="dialog"
+                    aria-label="React to message"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: "absolute", zIndex: 40, top: -54,
+                      right: mine ? 8 : "auto", left: mine ? "auto" : 8,
+                      display: "flex", flexDirection: "row", flexWrap: "nowrap",
+                      alignItems: "center", justifyContent: "flex-start", gap: 5,
+                      width: "max-content", maxWidth: "calc(100vw - 28px)",
+                      overflowX: "auto", whiteSpace: "nowrap", padding: 7,
+                      border: "1px solid var(--border, #ddd)", borderRadius: 18,
+                      background: "var(--card, #fff)", color: "var(--text, #222)",
+                      boxShadow: "0 8px 25px rgba(0,0,0,.16)",
+                    }}
+                  >
+                    {!customizingReactions ? (
+                      <>
+                        {quickReactions.map((emoji) => (
+                          <button key={emoji} type="button" onClick={() => toggleReaction(m.id, emoji)}
+                            title={`React ${emoji}`}
+                            style={{ flex: "0 0 auto", width: 32, minWidth: 32, height: 34,
+                              display: "inline-flex", alignItems: "center", justifyContent: "center",
+                              border: 0, background: "transparent", cursor: "pointer", fontSize: 23, padding: 0 }}>
+                            <AppleEmoji emoji={emoji} size={25} />
+                          </button>
+                        ))}
+                        <button type="button" onClick={() => setCustomizingReactions(true)}
+                          title="Customize quick reactions"
+                          style={{ flex: "0 0 auto", width: 34, height: 34, display: "inline-flex",
+                            alignItems: "center", justifyContent: "center", border: "1px solid var(--border, #ddd)",
+                            borderRadius: 10, background: "transparent", color: "var(--text, #222)", cursor: "pointer", padding: 0 }}>＋</button>
+                        <button type="button" onClick={() => { setReactionPickerFor(null); selectMessage(m.id); }}
+                          title="More message actions"
+                          style={{ flex: "0 0 auto", width: 34, height: 34, display: "inline-flex",
+                            alignItems: "center", justifyContent: "center", border: "1px solid var(--border, #ddd)",
+                            borderRadius: 10, background: "transparent", color: "var(--text, #222)", cursor: "pointer", padding: 0 }}>⋯</button>
+                      </>
+                    ) : (
+                      <div style={{ width: "100%" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, fontSize: 12 }}>
+                          <b>Choose quick reactions</b>
+                          <button type="button" onClick={() => setCustomizingReactions(false)}
+                            style={{ border: 0, background: "transparent", color: "var(--text, #222)", cursor: "pointer" }}>Done</button>
+                        </div>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 3 }}>
+                          {"❤️ 😂 🥹 😍 👍 🎉 😭 🥰 😊 😎 🙌 🔥 👏 🫶 😮 😢 🤔 💯 ✨ 🥳 🙏 💀 🥺 😡 💔 🤝 💕 😇 😴 🤗".split(" ").map((emoji) => {
+                            const active = quickReactions.includes(emoji);
+                            return (
+                              <button key={emoji} type="button"
+                                onClick={() => {
+                                  const next = active
+                                    ? quickReactions.filter((item) => item !== emoji)
+                                    : quickReactions.length < 6 ? [...quickReactions, emoji] : quickReactions;
+                                  if (next.length !== quickReactions.length || active) saveQuickReactions(next);
+                                }}
+                                title={active ? "Remove from quick reactions" : "Add to quick reactions"}
+                                style={{
+                                  border: active ? "1px solid var(--text, #333)" : "1px solid transparent",
+                                  borderRadius: 8, background: active ? "var(--hover, rgba(0,0,0,.08))" : "transparent",
+                                  cursor: "pointer", fontSize: 20, padding: 3,
+                                }}><AppleEmoji emoji={emoji} size={24} /></button>
+                            );
+                          })}
+                        </div>
+                        <small style={{ display: "block", marginTop: 5, opacity: .7 }}>Select up to six. Your choices are saved to your account.</small>
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
             </React.Fragment>
           );
@@ -1770,11 +2267,11 @@ export default function ChatView({
 
                 <b>Replying to {replyTo.senderName || "message"}</b>
 
-                <small>{replyTo.text || replyTo.fileName || "Attachment"}</small>
+                <small>{renderAppleEmojiText(replyTo.text) || replyTo.fileName || "Attachment"}</small>
 
               </div>
 
-              <button type="button" onClick={() => setReplyTo(null)}>✕</button>
+              <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" title="Cancel reply">✕</button>
 
             </div>
 
@@ -1802,9 +2299,27 @@ export default function ChatView({
 
             title="Attach file"
 
+            aria-label="Attach file"
+
           >
 
-            {uploading ? "⏳" : "📎"}
+            {uploading ? (
+              <span className="upload-spinner" aria-hidden="true" />
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                width="21"
+                height="21"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 11.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9" />
+              </svg>
+            )}
 
           </button>
 
@@ -1820,93 +2335,30 @@ export default function ChatView({
             )}
 
             {showEmojiPicker && (
-
               <div
-
                 className="tether-emoji-picker"
-
                 role="dialog"
-
                 aria-label="Choose an emoji"
-
                 style={{
-
                   position: "absolute",
-
                   bottom: "calc(100% + 12px)",
-
                   left: 0,
-
                   zIndex: 1000,
-
-                  width: "min(320px, 85vw)",
-
-                  maxHeight: "260px",
-
-                  overflowY: "auto",
-
-                  padding: "12px",
-
-                  display: "grid",
-
-                  gridTemplateColumns: "repeat(8, minmax(0, 1fr))",
-
-                  gap: "5px",
-
-                  background: "var(--card, #fff)",
-
-                  color: "var(--text, #29232b)",
-
-                  border: "1px solid var(--border, #eadde4)",
-
+                  width: "min(350px, 90vw)",
                   borderRadius: "16px",
-
+                  overflow: "hidden",
                   boxShadow: "0 10px 35px rgba(35, 20, 30, .18)",
-
                 }}
-
               >
-
-                {"😀 😃 😄 😁 😆 😅 😂 🤣 🥹 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤗 🤭 🫢 🤫 🤔 🫡 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 🤥 😔 🥺 😢😭 😤 😠 😡 🤯 🥳 😎 🤓 🧐 🤩 🥲 😴 🤤 🤧 🤒 🤕 🤢 🤮 🫠 🫶 ❤️ 🩷 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 💕 💞 💓 💗 💖 💘 💝 💟 👍 👎 👌 ✌️ 🤞 🫰 🤟 🤘 👏 🙌 🙏 💪 🫂 👋 🤝 🌸 🌷 🌹 🌻 🌼 💐 🍀 ⭐ 🌟 ✨ ⚡ 🔥 🎉 🎊 🎂 🎁 🧸 🐻 🐰 🐱 🐶 🦋 🍓 🍒 🍑 🍉 🍕 🍟 ☕ 🧋".split(" ").map((emoji, index) => (
-
-                  <button
-
-                    key={`${emoji}-${index}`}
-
-                    type="button"
-
-                    onClick={() => insertEmoji(emoji)}
-
-                    aria-label={`Insert ${emoji}`}
-
-                    style={{
-
-                      border: 0,
-
-                      background: "transparent",
-
-                      borderRadius: "8px",
-
-                      padding: "5px 2px",
-
-                      fontSize: "22px",
-
-                      cursor: "pointer",
-
-                      lineHeight: 1.3,
-
-                    }}
-
-                  >
-
-                    {emoji}
-
-                  </button>
-
-                ))}
-
+                <EmojiPicker
+                  onEmojiClick={(emojiData) => insertEmoji(emojiData.emoji)}
+                  emojiStyle="apple"
+                  width="100%"
+                  height={360}
+                  previewConfig={{ showPreview: false }}
+                  skinTonesDisabled={false}
+                />
               </div>
-
             )}
 
             <input
@@ -1955,9 +2407,25 @@ export default function ChatView({
             aria-expanded={showEmojiPicker}
 
           >
-
-            😊
-
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ display: "block", flexShrink: 0 }}
+            >
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+              <path
+                d="M8.5 14.2c.8 1.15 2.02 1.8 3.5 1.8s2.7-.65 3.5-1.8"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+              <circle cx="9" cy="9.5" r="1" fill="currentColor" />
+              <circle cx="15" cy="9.5" r="1" fill="currentColor" />
+            </svg>
           </button>
 
           <button
@@ -1989,8 +2457,31 @@ export default function ChatView({
 
           <button type="button" onClick={() => { send(); setShowEmojiPicker(false); }}>Send</button>
 
+          <VoiceNoteComposer onSend={sendVoiceNote} disabled={uploading || !!text.trim()} />
+
         </div>
 
+      )}
+
+      {/* WHO REACTED */}
+      {reactionDetailsFor && (
+        <div className="overlay" onClick={() => setReactionDetailsFor(null)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 360, width: "min(360px, 92vw)" }}>
+            <button className="close" onClick={() => setReactionDetailsFor(null)}>✕</button>
+            <h3>{reactionDetailsFor.emoji} Reactions</h3>
+            <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+              {reactionsFor(reactionDetailsFor.messageId)
+                .filter((reaction) => reaction.emoji === reactionDetailsFor.emoji)
+                .map((reaction) => (
+                  <div key={reaction.uid} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Avatar src={reaction.photoURL} name={reaction.displayName || "Friend"} size={34} />
+                    <span>{reaction.uid === user.uid ? "You" : reaction.displayName || "Friend"}</span>
+                    <span style={{ marginLeft: "auto" }}><AppleEmoji emoji={reaction.emoji} size={22} /></span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MESSAGE INFO */}

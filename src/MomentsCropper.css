@@ -1,0 +1,108 @@
+/* Neutral, theme-independent photo crop editor */
+.tm-selected-crop {
+  position:absolute;
+  left:5px;
+  top:5px;
+  z-index:2;
+  border:1px solid rgba(255,255,255,.7);
+  border-radius:6px;
+  padding:4px 7px;
+  color:#fff;
+  background:rgba(0,0,0,.58);
+  font-size:11px;
+  cursor:pointer;
+}
+.tm-crop-backdrop {
+  position:fixed;
+  inset:0;
+  z-index:4000;
+  display:grid;
+  place-items:center;
+  padding:16px;
+  background:rgba(0,0,0,.68);
+}
+.tm-crop-dialog {
+  width:min(100%,420px);
+  max-height:92dvh;
+  overflow:auto;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--surface);
+  color:var(--text);
+  box-shadow:0 18px 55px rgba(0,0,0,.25);
+}
+.tm-crop-heading {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.tm-crop-heading h3 { margin:0; font-size:18px; }
+.tm-crop-heading p { margin:5px 0 0; color:var(--muted); font-size:12px; }
+.tm-crop-heading > button {
+  border:1px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:var(--text);
+  font-size:24px;
+  line-height:1;
+  cursor:pointer;
+}
+.tm-crop-heading > button:hover,
+.tm-crop-actions button:hover {
+  background:color-mix(in srgb, var(--text) 5%, transparent);
+  border-color:var(--border);
+}
+.tm-crop-frame {
+  position:relative;
+  width:min(100%,360px);
+  aspect-ratio:1;
+  margin:0 auto;
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:4px;
+  background:var(--background, #111);
+  touch-action:none;
+  cursor:grab;
+  user-select:none;
+}
+.tm-crop-frame:active { cursor:grabbing; }
+.tm-crop-frame img {
+  position:absolute;
+  max-width:none;
+  max-height:none;
+  object-fit:fill;
+  user-select:none;
+  pointer-events:none;
+  -webkit-user-drag:none;
+}
+.tm-crop-zoom {
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:16px 0;
+  color:var(--text);
+  font-size:13px;
+}
+.tm-crop-zoom input {
+  flex:1;
+  min-width:0;
+  accent-color:var(--text);
+}
+.tm-crop-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+}
+.tm-crop-actions button {
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:9px 13px;
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+}
+.tm-crop-actions button:disabled { opacity:.5; cursor:wait; }
+.tm-crop-error { color:var(--text); font-size:12px; }

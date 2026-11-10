@@ -152,8 +152,42 @@ export default function Contacts({ user, nicks, onOpen, onProfile }) {
         </>
       )}
 
-      <h4 className="sec">My contacts</h4>
-      <input placeholder="🔍 Search my contacts" value={mySearch} onChange={(e) => setMySearch(e.target.value)} />
+<h4 className="sec">My contacts</h4>
+
+<div style={{ position: "relative", width: "100%" }}>
+  <svg
+    viewBox="0 0 24 24"
+    width="19"
+    height="19"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    style={{
+      position: "absolute",
+      left: 16,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "var(--muted, #91858b)",
+      pointerEvents: "none",
+    }}
+    aria-hidden="true"
+  >
+    <circle cx="10.8" cy="10.8" r="6.8" />
+    <path d="m16 16 4.2 4.2" />
+  </svg>
+
+  <input
+    placeholder="Search my contacts"
+    value={mySearch}
+    onChange={(e) => setMySearch(e.target.value)}
+    style={{
+      width: "100%",
+      boxSizing: "border-box",
+      paddingLeft: 44,
+    }}
+  />
+</div>
       {myContacts.map((uid) => {
         const p = people[uid];
         const shown = nicks[uid] || p?.name || "...";

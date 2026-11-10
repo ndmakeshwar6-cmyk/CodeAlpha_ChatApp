@@ -291,7 +291,7 @@ export default function ProfileView({
 
             {moodOn && (
               <div className="profile-id-mood">
-                {p.mood.emoji} {p.mood.text}
+                {p.mood.text}
               </div>
             )}
 
@@ -414,7 +414,7 @@ export default function ProfileView({
                   setMsg("");
                 }}
               >
-                ✏️ Rename in your contacts
+                <><svg className="profile-id-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></svg> Rename in your contacts</>
               </button>
             )}
 
@@ -425,14 +425,14 @@ export default function ProfileView({
                   className="secondary"
                   onClick={unblock}
                 >
-                  ✅ Unblock
+                  <><svg className="profile-id-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg> Unblock</>
                 </button>
               ) : (
                 <button
                   className="secondary"
                   onClick={() => setConfirmBlock(true)}
                 >
-                  🚫 Block
+                  <><svg className="profile-id-action-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="m5.6 5.6 12.8 12.8" /></svg> Block</>
                 </button>
               )}
 
@@ -445,7 +445,7 @@ export default function ProfileView({
                     setMsg("");
                   }}
                 >
-                  🚩 Report
+                  <><svg className="profile-id-action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4" /><path d="M5 4c5-3 9 3 14 0v11c-5 3-9-3-14 0" /></svg> Report</>
                 </button>
               )}
             </div>
@@ -548,6 +548,23 @@ export default function ProfileView({
             )}
           </div>
         )}
+
+
+
+        <style>{`
+          .profile-id-action-icon {
+            width: 16px;
+            height: 16px;
+            display: inline-block;
+            vertical-align: -3px;
+            margin-right: 5px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+          }
+        `}</style>
 
         {/* Decorative ID footer */}
         <div className="profile-id-footer">

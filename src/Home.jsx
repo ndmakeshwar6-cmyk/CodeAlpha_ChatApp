@@ -16,11 +16,11 @@ import {
 import Avatar from "./Avatar";
 
 const MOODS = [
-  { text: "Studying", emoji: "📚" },
-  { text: "Busy", emoji: "⏳" },
-  { text: "Listening to music", emoji: "🎧" },
-  { text: "Chilling", emoji: "😌" },
-  { text: "Working", emoji: "💻" },
+  "Studying",
+  "Busy",
+  "Listening to music",
+  "Chilling",
+  "Working",
 ];
 
 function greeting() {
@@ -79,7 +79,7 @@ export default function Home({
   const [search, setSearch] = useState("");
   const [moodOpen, setMoodOpen] = useState(false);
   const [moodText, setMoodText] = useState("");
-  const [moodEmoji, setMoodEmoji] = useState("");
+  const [selectedMood, setSelectedMood] = useState("");
   const [, tick] = useState(0);
 
   // Refresh time-based UI every minute
@@ -208,15 +208,28 @@ export default function Home({
     }
   };
 
-  // Save mood status
-  const saveMood = async (text, emoji) => {
-    if (!text.trim()) return;
+  // Open the editor with the current status, if one is active.
+  const openMoodEditor = () => {
+    const currentText = profile?.mood?.text || "";
+    if (MOODS.includes(currentText)) {
+      setSelectedMood(currentText);
+      setMoodText("");
+    } else {
+      setSelectedMood("");
+      setMoodText(currentText);
+    }
+    setMoodOpen(true);
+  };
+
+  // Save a text-only mood status for eight hours.
+  const saveMood = async () => {
+    const text = (moodText.trim() || selectedMood).trim();
+    if (!text || !user?.uid) return;
 
     try {
       await updateDoc(doc(db, "users", user.uid), {
         mood: {
-          text: text.trim().slice(0, 40),
-          emoji: (emoji || "").trim().slice(0, 4),
+          text: text.slice(0, 40),
           expiresAt: Timestamp.fromMillis(
             Date.now() + 8 * 60 * 60 * 1000
           ),
@@ -225,7 +238,7 @@ export default function Home({
 
       setMoodOpen(false);
       setMoodText("");
-      setMoodEmoji("");
+      setSelectedMood("");
     } catch (error) {
       console.error("Could not save mood:", error);
     }
@@ -399,7 +412,21 @@ export default function Home({
         title={pins.has(it.id) ? "Unpin conversation" : "Pin conversation"}
         aria-label={pins.has(it.id) ? "Unpin conversation" : "Pin conversation"}
       >
-        📌
+        <svg
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M8 4.5h8l-.8 5.2 2.8 2.8v1H6v-1l2.8-2.8L8 4.5Z" />
+          <path d="M12 13.5V21" />
+        </svg>
       </button>
 
       <span className="tether-chevron">›</span>
@@ -418,20 +445,47 @@ export default function Home({
 
         <button
           className="mood-btn"
-          onClick={() => setMoodOpen(true)}
+          onClick={openMoodEditor}
         >
-          {active
-            ? `${profile.mood.emoji} ${profile.mood.text}`
-            : "＋ Set a mood"}
+          {active ? profile.mood.text : "＋ Set a mood"}
         </button>
       </div>
 
       {/* Search */}
-      <input
-        placeholder="🔍 Search chats and contacts"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div
+        className="tether-search-wrap"
+        style={{ position: "relative", width: "100%" }}
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          width="18"
+          height="18"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            position: "absolute",
+            left: 15,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--muted, #91858b)",
+            pointerEvents: "none",
+          }}
+        >
+          <circle cx="10.8" cy="10.8" r="6.8" />
+          <path d="m16 16 4.2 4.2" />
+        </svg>
+        <input
+          className="tether-search-input"
+          placeholder="Search chats and contacts"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: "100%", boxSizing: "border-box", paddingLeft: 42 }}
+        />
+      </div>
 
       {/* New group */}
       <button
@@ -529,71 +583,201 @@ export default function Home({
         <div
           className="overlay"
           onClick={() => setMoodOpen(false)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+            background: "rgba(35, 29, 32, 0.42)",
+            backdropFilter: "blur(5px)",
+          }}
         >
           <div
-            className="sheet"
+            className="sheet mood-editor"
             onClick={(e) => e.stopPropagation()}
+            style={{
+              position: "relative",
+              width: "min(100%, 520px)",
+              boxSizing: "border-box",
+              padding: "30px",
+              borderRadius: 24,
+              background: "var(--surface, #fffdfb)",
+              color: "var(--text, #393239)",
+              boxShadow: "0 24px 70px rgba(35, 29, 32, 0.16)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 18,
+            }}
           >
             <button
-              className="close"
+              type="button"
+              aria-label="Close status editor"
               onClick={() => setMoodOpen(false)}
+              style={{
+                position: "absolute",
+                top: 18,
+                right: 18,
+                width: 38,
+                height: 38,
+                border: "1px solid var(--border, #eee5e7)",
+                borderRadius: "50%",
+                background: "var(--surface2, #f7f2ef)",
+                color: "var(--text, #393239)",
+                fontSize: 20,
+                cursor: "pointer",
+              }}
             >
-              ✕
+              ×
             </button>
 
-            <h3 style={{ margin: 0 }}>
-              How are you feeling?
-            </h3>
-
-            <div className="mood-opts">
-              {MOODS.map((m) => (
-                <button
-                  key={m.text}
-                  onClick={() => saveMood(m.text, m.emoji)}
-                >
-                  {m.emoji} {m.text}
-                </button>
-              ))}
+            <div style={{ paddingRight: 42 }}>
+              <h3 style={{ margin: 0, fontSize: 21, fontWeight: 600 }}>
+                How are you feeling?
+              </h3>
+              <p style={{
+                margin: "7px 0 0",
+                color: "var(--muted, #91858b)",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}>
+                Choose a status or write your own.
+              </p>
             </div>
 
-            <small>Or write your own</small>
-
             <div
-              className="row-inline"
-              style={{ width: "100%" }}
+              className="mood-opts"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 9,
+              }}
             >
-              <input
-                style={{ width: 54, flex: "none" }}
-                value={moodEmoji}
-                placeholder="😀"
-                maxLength={4}
-                onChange={(e) => setMoodEmoji(e.target.value)}
-              />
+              {MOODS.map((mood) => {
+                const selected = selectedMood === mood && !moodText.trim();
+                return (
+                  <button
+                    key={mood}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setSelectedMood(mood);
+                      setMoodText("");
+                    }}
+                    style={{
+                      minHeight: 43,
+                      padding: "10px 16px",
+                      border: selected
+                        ? "1px solid var(--accent, #d98da7)"
+                        : "1px solid var(--border, #eee5e7)",
+                      borderRadius: 12,
+                      background: selected
+                        ? "var(--accent-soft, #f7e5eb)"
+                        : "var(--surface2, #faf7f5)",
+                      color: "var(--text, #393239)",
+                      fontSize: 14,
+                      fontWeight: selected ? 600 : 400,
+                      cursor: "pointer",
+                      transition: "background 150ms ease, border-color 150ms ease",
+                    }}
+                  >
+                    {mood}
+                  </button>
+                );
+              })}
+            </div>
 
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label
+                htmlFor="tether-custom-mood"
+                style={{
+                  color: "var(--muted, #91858b)",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Custom status
+              </label>
               <input
+                id="tether-custom-mood"
                 value={moodText}
-                placeholder="Custom status"
+                placeholder="Write a status..."
                 maxLength={40}
-                onChange={(e) => setMoodText(e.target.value)}
+                onChange={(e) => {
+                  setMoodText(e.target.value);
+                  if (e.target.value.trim()) setSelectedMood("");
+                }}
+                style={{
+                  width: "100%",
+                  minHeight: 48,
+                  boxSizing: "border-box",
+                  padding: "12px 14px",
+                  border: "1px solid var(--border, #eee5e7)",
+                  borderRadius: 12,
+                  background: "var(--surface, #fffdfb)",
+                  color: "var(--text, #393239)",
+                  font: "inherit",
+                  fontSize: 14,
+                  outlineColor: "var(--accent, #d98da7)",
+                }}
               />
+              <small style={{
+                color: "var(--muted, #91858b)",
+                fontSize: 11,
+                textAlign: "right",
+              }}>
+                {(moodText || selectedMood).length}/40
+              </small>
             </div>
 
             <button
-              onClick={() => saveMood(moodText, moodEmoji)}
+              type="button"
+              onClick={saveMood}
+              disabled={!moodText.trim() && !selectedMood}
+              style={{
+                width: "100%",
+                minHeight: 46,
+                border: "1px solid var(--accent, #d98da7)",
+                borderRadius: 12,
+                background: "var(--accent, #e8a0b7)",
+                color: "var(--accent-text, #392b31)",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: !moodText.trim() && !selectedMood ? "not-allowed" : "pointer",
+                opacity: !moodText.trim() && !selectedMood ? 0.55 : 1,
+              }}
             >
-              Save
+              Save status
             </button>
 
             {active && (
               <button
-                className="secondary"
+                type="button"
                 onClick={clearMood}
+                style={{
+                  alignSelf: "center",
+                  padding: "4px 10px",
+                  border: 0,
+                  background: "transparent",
+                  color: "var(--muted, #91858b)",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
               >
-                Remove my status
+                Remove status
               </button>
             )}
 
-            <small>Your status disappears after 8 hours</small>
+            <p style={{
+              margin: 0,
+              paddingTop: 3,
+              color: "var(--muted, #91858b)",
+              fontSize: 12,
+              textAlign: "center",
+            }}>
+              Your status disappears after 8 hours.
+            </p>
           </div>
         </div>
       )}

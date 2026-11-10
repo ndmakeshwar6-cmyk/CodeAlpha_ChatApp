@@ -15,6 +15,7 @@ import {
 import ProfileSetup from "./ProfileSetup";
 import Avatar from "./Avatar";
 import Home from "./Home";
+import Moments from "./Moments";
 import ChatView from "./ChatView";
 import Contacts from "./Contacts";
 import ProfileView from "./ProfileView";
@@ -49,6 +50,13 @@ function TabIcon({ name }) {
         <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z" />
       </>
     ),
+    moments: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <circle cx="8.5" cy="9" r="1.5" />
+        <path d="m5 17 4.5-4.5 3 3L16 12l3 5" />
+      </>
+    ),
     people: (
       <>
         <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -57,19 +65,14 @@ function TabIcon({ name }) {
         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </>
     ),
-    board: (
-      <>
-        <path d="M12 3v3" />
-        <path d="M5.5 5.5 7.6 7.6" />
-        <path d="M3 12h3" />
-        <path d="M18 12h3" />
-        <path d="M16.4 7.6l2.1-2.1" />
-        <path d="M7 16.5 5 19" />
-        <path d="M17 16.5 19 19" />
-        <path d="M12 9v12" />
-        <path d="M8 21h8" />
-      </>
-    ),
+  board: (
+  <>
+    <rect x="3" y="4" width="18" height="13" rx="2" />
+    <path d="M7 13l3-3 3 2 4-4" />
+    <path d="M12 17v4" />
+    <path d="M8 21h8" />
+  </>
+),
     settings: (
       <>
         <circle cx="12" cy="12" r="3" />
@@ -226,6 +229,7 @@ export default function App() {
 
       <div className="tabs">
         {tabBtn("chats", "Chats", "chats")}
+        {tabBtn("moments", "Moments", "moments")}
         {tabBtn("people", "Contacts", "people", reqCount)}
         {tabBtn("board", "Whiteboard", "board")}
         {tabBtn("settings", "Settings", "settings")}
@@ -263,6 +267,10 @@ export default function App() {
             />
           </div>
         ))}
+
+      {tab === "moments" && (
+        <Moments user={user} profile={profile} onProfile={setViewUid} />
+      )}
 
       {tab === "people" && (
         <Contacts

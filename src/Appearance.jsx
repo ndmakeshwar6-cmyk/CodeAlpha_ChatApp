@@ -12,6 +12,62 @@ const DEF = {
 
 const newId = () => Math.random().toString(36).slice(2, 9);
 
+function ThemeIcon({ type }) {
+  const common = {
+    width: 19,
+    height: 19,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    "aria-hidden": true,
+  };
+
+  if (type === "light") {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="3.7" />
+        <path d="M12 2.5v2M12 19.5v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2.5 12h2M19.5 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
+      </svg>
+    );
+  }
+
+  if (type === "dark") {
+    return (
+      <svg {...common}>
+        <path d="M19.2 15.1A8 8 0 0 1 8.9 4.8 8.2 8.2 0 1 0 19.2 15.1Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...common}>
+      <rect x="3.5" y="4" width="17" height="13" rx="1.8" />
+      <path d="M8 21h8M12 17v4M3.5 14.5h17" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 14h11l1-14M9 7V4h6v3" />
+    </svg>
+  );
+}
+
 export default function Appearance({ user, prefs }) {
   const ref = doc(db, "users", user.uid, "prefs", "appearance");
 
@@ -207,7 +263,7 @@ export default function Appearance({ user, prefs }) {
     <div className="appearance-page">
 
       <div className="appearance-intro">
-        <h3>Make Tether yours ✨</h3>
+        <h3>Make Tether yours</h3>
         <p>Personalise your chats, colours and typography.</p>
       </div>
 
@@ -219,10 +275,10 @@ export default function Appearance({ user, prefs }) {
 
         <div className="appearance-options">
           {[
-            ["light", "☀️", "Light"],
-            ["dark", "🌙", "Dark"],
-            ["system", "💻", "System"],
-          ].map(([id, emoji, label]) => (
+            ["light", "Light"],
+            ["dark", "Dark"],
+            ["system", "System"],
+          ].map(([id, label]) => (
             <button
               key={id}
               type="button"
@@ -230,7 +286,9 @@ export default function Appearance({ user, prefs }) {
               className={`appearance-option ${theme === id ? "is-selected" : ""}`}
               onClick={() => pickTheme(id)}
             >
-              <span>{emoji}</span>
+              <span className="appearance-option-icon">
+                <ThemeIcon type={id} />
+              </span>
               <span>{label}</span>
               {theme === id && <span className="appearance-check">✓</span>}
             </button>
@@ -281,7 +339,7 @@ export default function Appearance({ user, prefs }) {
                 color: readable(inn || DEF.inn),
               }}
             >
-              Hey! How are you? 👋
+              Hey! How are you?
               <small>10:30</small>
             </div>
 
@@ -292,7 +350,7 @@ export default function Appearance({ user, prefs }) {
                 color: readable(out || DEF.out),
               }}
             >
-              Doing great, thanks! 💗
+              Doing great, thanks!
               <small>10:31 ✓✓</small>
             </div>
           </div>
@@ -317,7 +375,6 @@ export default function Appearance({ user, prefs }) {
         <div className="appearance-combo-list">
           {combos.length === 0 && (
             <div className="appearance-empty">
-              <span>🎨</span>
               <p>No saved combinations yet.</p>
               <small>Create your first palette below.</small>
             </div>
@@ -374,7 +431,7 @@ export default function Appearance({ user, prefs }) {
                       aria-label={`Delete ${c.name}`}
                       onClick={() => setDelId(c.id)}
                     >
-                      🗑️
+                      <TrashIcon />
                     </button>
                   </>
                 )}
