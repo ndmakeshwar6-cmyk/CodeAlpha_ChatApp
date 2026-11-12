@@ -1,16 +1,132 @@
-# React + Vite
+# Tether
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Your little corner of connection.
 
-Currently, two official plugins are available:
+Tether is a real-time messaging application designed to make staying connected more personal and meaningful.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+It brings conversations, shared moments and interactive experiences together in one place.
 
-## React Compiler
+**Live Application:** https://tether-chat.ndmakeshwar6.workers.dev
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Overview
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Tether is built to provide a simple, engaging communication experience with features that go beyond traditional messaging.
+
+## Features
+
+### Messaging
+- Real-time private messaging
+- Group conversations
+- Message replies and forwarding
+- Delivery and read receipts
+- Voice messages
+- Media and file sharing
+
+### Personalisation
+- Customisable user profiles
+- Profile pictures and interests
+- Favourite music integration
+- Mood statuses
+- Light and dark themes
+
+### Social
+- Contact requests and management
+- Shared Moments
+- Sticker collections
+- Favourite and recently used stickers
+- GIPHY sticker discovery
+
+### Collaboration
+- Shared whiteboards
+- Group administration
+- Interactive conversations
+
+### Privacy and Safety
+- Profile privacy controls
+- Contact-based access to private information
+- Blocking and safety settings
+
+### Mobile Experience
+- Installable Progressive Web App
+- Responsive interface
+- App-like mobile experience
+
+---
+
+## Technology Stack
+
+| Technology | Usage |
+|---|---|
+| React | User interface |
+| Vite | Development and build |
+| Firebase Authentication | User authentication |
+| Cloud Firestore | Real-time database |
+| Cloudinary | Media storage |
+| GIPHY API | Sticker discovery |
+| Cloudflare Workers | Hosting and deployment |
+
+---
+
+## Getting Started
+
+### Requirements
+- Node.js
+- npm
+- Firebase project configuration
+- GIPHY API key
+
+### Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ndmakeshwar6-cmyk/CodeAlpha_ChatApp.git
+```
+
+Navigate to the project directory:
+
+```bash
+cd CodeAlpha_ChatApp
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Configure the required environment variables in `.env.local`.
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+### Production Build
+
+```bash
+npm run build
+```
+
+---
+
+## Live Demo
+
+Experience Tether:
+
+https://tether-chat.ndmakeshwar6.workers.dev
+
+---
+
+## About the Project
+
+Tether is a personal development project exploring modern frontend development, real-time communication, cloud technologies and interactive web experiences.
+
+**Developer:** [ndmakeshwar6-cmyk](https://github.com/ndmakeshwar6-cmyk)
+
+---
+
+Made with care.
